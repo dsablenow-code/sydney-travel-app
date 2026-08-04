@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.5
-   (서류 공유함 모바일 리스트 수직배치 및 우측 버튼 잘림 완벽 수리)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.6
+   (서류 공유함 모바일 박스사이징 100% 클래스 분리 수리)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -133,7 +133,6 @@ const defaultPhotos = [
   { id: 'p4', src: 'https://images.unsplash.com/photo-1549180030-48bf079fb38a?auto=format&fit=crop&w=600&q=80', title: '시드니 공항 귀국길', category: '8/24', heart: 3, thumb: 2, wow: 1, party: 5 }
 ];
 
-// 마스터 키 구조
 const STORAGE_KEYS = {
   ITINERARY: 'sydney_master_itinerary_v1',
   SETTLEMENT: 'sydney_master_settlement_v1',
@@ -147,7 +146,6 @@ const STORAGE_KEYS = {
   FIREBASE_CONFIG: 'sydney_master_fb_config_v1'
 };
 
-// 글로벌 상태 변수
 let itineraryData = [];
 let settlementData = [];
 let grantAmount = 2500000;
@@ -162,15 +160,11 @@ let currentPhotoFilter = 'all';
 let currentActivePhotoId = null;
 let mapInstance = null;
 
-// Firebase 인스턴스 (Firestore & Realtime DB 둘 다 유연하게 대응)
 let dbInstance = null;
 let rtdbInstance = null;
 let isRemoteUpdating = false;
 let syncBroadcastChannel = null;
 
-// ================= ================= =================
-// 앱 초기화 & 멀티 브라우저/다른 컴퓨터 검증 동기화 채널 구동
-// ================= ================= =================
 document.addEventListener('DOMContentLoaded', () => {
   loadDataFromStorage();
   initTabNavigation();
@@ -677,7 +671,7 @@ window.filterDocTag = function(tag, btnEl) {
   renderSharedFiles();
 };
 
-/* 📄 [핵심 튜닝]: 서류 리스트 렌더링 (스마트폰 모바일 반응형 핏 완전 보장) */
+/* 📄 [핵심 수리]: 서류 공유함 스마트폰 박스사이징 100% 클래스 분리 */
 function renderSharedFiles() {
   const container = document.getElementById('sharedFileList');
   if (!container) return;
@@ -696,20 +690,10 @@ function renderSharedFiles() {
 
   filteredFiles.forEach(file => {
     const li = document.createElement('li');
-    li.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #FFFFFF;
-      padding: 10px 14px;
-      border-radius: 12px;
-      box-shadow: var(--clay-shadow-pressed);
-      font-size: 0.85rem;
-      width: 100%;
-    `;
+    li.className = 'doc-item-li';
 
     li.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px; overflow:hidden; width:100%;">
+      <div class="doc-item-info">
         <i class="fa-solid fa-file-pdf" style="color:var(--uluru-red); font-size:1.2rem; flex-shrink:0;"></i>
         <div style="overflow:hidden; flex-grow:1;">
           <div style="font-weight:700; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHTML(file.name)}</div>
@@ -719,7 +703,7 @@ function renderSharedFiles() {
           </div>
         </div>
       </div>
-      <div style="display:flex; gap:6px; flex-shrink:0; margin-top:4px;">
+      <div class="doc-item-actions">
         <button class="clay-btn clay-btn-primary" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;" onclick="downloadSingleFile('${file.id}')">
           <i class="fa-solid fa-download"></i> 다운
         </button>
