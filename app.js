@@ -1,6 +1,6 @@
 /* ==========================================================================
    2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.0
-   (영구 고정 마스터 키 & 하위 호환 자동 마이그레이션 & Google Cloud Sync 기틀 반영)
+   (Google Firebase Cloud Realtime Sync 엔진 & 영구 마스터 키 수리완료)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -133,9 +133,7 @@ const defaultPhotos = [
   { id: 'p4', src: 'https://images.unsplash.com/photo-1549180030-48bf079fb38a?auto=format&fit=crop&w=600&q=80', title: '시드니 공항 귀국길', category: '8/24', heart: 3, thumb: 2, wow: 1, party: 5 }
 ];
 
-// ================= ================= =================
-// [핵심 픽스]: 영구 고정 마스터 키 (Push/배포 시 데이터 리셋 100% 방지)
-// ================= ================= =================
+// 마스터 키 구조
 const STORAGE_KEYS = {
   ITINERARY: 'sydney_master_itinerary_v1',
   SETTLEMENT: 'sydney_master_settlement_v1',
@@ -145,14 +143,9 @@ const STORAGE_KEYS = {
   EMERGENCY: 'sydney_master_emergency_v1',
   FILES: 'sydney_master_files_v1',
   PHOTOS: 'sydney_master_photos_v1',
-  MEMOS: 'sydney_master_memos_v1'
+  MEMOS: 'sydney_master_memos_v1',
+  FIREBASE_CONFIG: 'sydney_master_fb_config_v1'
 };
-
-// 이전 임시 버전 키들 (자동 마이그레이션용)
-const LEGACY_KEYS = [
-  'sydney_itinerary_v1_12', 'sydney_itinerary_v1_13', 'sydney_itinerary_v1_14', 'sydney_itinerary_v1_15', 'sydney_itinerary_v1_22',
-  'sydney_settlement_v1_12', 'sydney_settlement_v1_13', 'sydney_settlement_v1_14', 'sydney_settlement_v1_15', 'sydney_settlement_v1_22'
-];
 
 // 글로벌 상태 변수
 let itineraryData = [];
@@ -169,8 +162,12 @@ let currentPhotoFilter = 'all';
 let currentActivePhotoId = null;
 let mapInstance = null;
 
+// Firebase 구글 클라우드 싱크 관련 객체
+let dbInstance = null;
+let isRemoteUpdating = false;
+
 // ================= ================= =================
-// 앱 초기화 & 하위 호환 데이터 자동 복구
+// 앱 초기화 & 하위 호환 데이터 자동 복구 & Firebase 클라우드 연결
 // ================= ================= =================
 document.addEventListener('DOMContentLoaded', () => {
   loadDataFromStorage();
@@ -179,19 +176,17 @@ document.addEventListener('DOMContentLoaded', () => {
   initMap();
   renderChecklist();
   renderSettlementTable();
+  initFirebaseCloudSync();
 });
 
-// 하위 버전 키에서 데이터 검색 후 마스터 키로 자동 승격시키는 안전 로직
 function getItemWithFallback(masterKey, legacyPrefix) {
   const masterData = localStorage.getItem(masterKey);
   if (masterData) return masterData;
 
-  // 구 버전 키 탐색
   for (let i = 25; i >= 10; i--) {
     const oldKey = `${legacyPrefix}_v1_${i}`;
     const oldData = localStorage.getItem(oldKey);
     if (oldData) {
-      console.log(`[마이그레이션] 이전 구버전 데이터 발견 (${oldKey}) ➔ 마스터키 승격 저장`);
       localStorage.setItem(masterKey, oldData);
       return oldData;
     }
@@ -246,11 +241,146 @@ function saveDataToStorage() {
   localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(photoData));
   localStorage.setItem(STORAGE_KEYS.MEMOS, JSON.stringify(memoData));
 
-  // 구글 클라우드 동기화 모듈이 연결되어 있을 경우 동기화 트리거
-  if (typeof window.triggerGoogleCloudSync === 'function') {
-    window.triggerGoogleCloudSync();
+  // 로컬 변경 시 구글 클라우드 파이어베이스로 데이터 자동 푸시
+  if (!isRemoteUpdating && dbInstance) {
+    pushDataToFirebaseCloud();
   }
 }
+
+// ================= ================= =================
+// ☁️ 구글 파이어베이스 실시간 동기화 (Realtime Cloud Sync)
+// ================= ================= =================
+function initFirebaseCloudSync() {
+  const savedConfig = localStorage.getItem(STORAGE_KEYS.FIREBASE_CONFIG);
+  
+  if (savedConfig) {
+    try {
+      const config = JSON.parse(savedConfig);
+      if (typeof firebase !== 'undefined' && config.apiKey) {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(config);
+        }
+        dbInstance = firebase.firestore();
+        updateCloudSyncBadge(true, '☁️ Realtime Cloud Sync 연결됨');
+        subscribeCloudSyncChanges();
+      }
+    } catch (e) {
+      console.warn('Firebase 구글 클라우드 초기화 대기:', e);
+      updateCloudSyncBadge(false, '☁️ Sync 설정 필요 (클릭)');
+    }
+  } else {
+    updateCloudSyncBadge(false, '☁️ Realtime Sync 설정 (클릭)');
+  }
+}
+
+function updateCloudSyncBadge(isConnected, text) {
+  const badge = document.getElementById('cloudSyncStatusBadge');
+  const textEl = document.getElementById('cloudStatusText');
+  if (badge && textEl) {
+    textEl.innerText = text;
+    if (isConnected) {
+      badge.className = 'clay-badge badge-green';
+    } else {
+      badge.className = 'clay-badge badge-gold';
+    }
+  }
+}
+
+function pushDataToFirebaseCloud() {
+  if (!dbInstance) return;
+  try {
+    dbInstance.collection('sydney_travel_app').doc('master_data').set({
+      itinerary: itineraryData,
+      settlement: settlementData,
+      grant: grantAmount,
+      checklist: checklistData,
+      hotel: hotelData,
+      emergency: emergencyData,
+      memos: memoData,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).then(() => {
+      console.log('☁️ 구글 클라우드 실시간 동기화 완료');
+    }).catch(err => {
+      console.error('구글 클라우드 저장 실패:', err);
+    });
+  } catch (err) {
+    console.error('Push error:', err);
+  }
+}
+
+function subscribeCloudSyncChanges() {
+  if (!dbInstance) return;
+  
+  dbInstance.collection('sydney_travel_app').doc('master_data').onSnapshot((doc) => {
+    if (doc.exists) {
+      const data = doc.data();
+      isRemoteUpdating = true;
+
+      if (data.itinerary) itineraryData = data.itinerary;
+      if (data.settlement) settlementData = data.settlement;
+      if (data.grant) grantAmount = data.grant;
+      if (data.checklist) checklistData = data.checklist;
+      if (data.hotel) hotelData = data.hotel;
+      if (data.emergency) emergencyData = data.emergency;
+      if (data.memos) memoData = data.memos;
+
+      saveDataToStorage();
+
+      renderHotelAndEmergencyDisplay();
+      renderItinerarySidebar();
+      updateMapMarkersAndPolylines();
+      renderChecklist();
+      renderSettlementTable();
+      renderMemos();
+
+      isRemoteUpdating = false;
+      console.log('⚡ 구글 클라우드로부터 데이터 실시간 동기화 수신 완료');
+    }
+  }, err => {
+    console.error('클라우드 구독 에러:', err);
+  });
+}
+
+window.openCloudSyncConfigModal = function() {
+  const overlay = document.getElementById('cloudSyncModalOverlay');
+  const savedConfig = localStorage.getItem(STORAGE_KEYS.FIREBASE_CONFIG);
+  if (savedConfig) {
+    try {
+      const parsed = JSON.parse(savedConfig);
+      document.getElementById('fbApiKey').value = parsed.apiKey || '';
+      document.getElementById('fbProjectId').value = parsed.projectId || '';
+    } catch(e) {}
+  }
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeCloudSyncConfigModal = function() {
+  const overlay = document.getElementById('cloudSyncModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveFirebaseConfigModal = function(e) {
+  if (e) e.preventDefault();
+  const apiKey = document.getElementById('fbApiKey').value.trim();
+  const projectId = document.getElementById('fbProjectId').value.trim();
+
+  if (!apiKey || !projectId) {
+    alert('Firebase apiKey와 projectId를 입력해주세요.');
+    return;
+  }
+
+  const configObj = {
+    apiKey: apiKey,
+    projectId: projectId,
+    authDomain: `${projectId}.firebaseapp.com`,
+    storageBucket: `${projectId}.appspot.com`
+  };
+
+  localStorage.setItem(STORAGE_KEYS.FIREBASE_CONFIG, JSON.stringify(configObj));
+  alert('☁️ 구글 파이어베이스 설정이 저장되었습니다! 실시간 동기화를 시작합니다.');
+  closeCloudSyncConfigModal();
+  initFirebaseCloudSync();
+};
 
 // ================= ================= =================
 // UTF-8 Bit 11 Flag 지원 Pure JS ZIP Packager
@@ -322,7 +452,7 @@ function createPureZipBlob(fileEntries) {
 
     const dataCrc = crc32(dataBytes);
     const size = dataBytes.length;
-    const flagsLE = [0x00, 0x08]; // Bit 11 UTF-8 Flag
+    const flagsLE = [0x00, 0x08];
 
     const localHeader = new Uint8Array([
       0x50, 0x4b, 0x03, 0x04,

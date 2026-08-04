@@ -8,21 +8,29 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- PC/모바일 정밀 반응형 핏 버전 (v=1.2.3) -->
-  <link rel="stylesheet" href="styles.css?v=1.2.3">
+  <!-- Google Cloud Sync 파이어베이스 버전 (v=1.3.0) -->
+  <link rel="stylesheet" href="styles.css?v=1.3.0">
 </head>
 <body>
 
   <!-- ================= ================= =================
-       글로벌 헤더 & 클레이모피즘 네비게이션
+       글로벌 헤더 & 클레이모피즘 네비게이션 (클라우드 싱크 상태 표시 포함)
        ================= ================= ================= -->
   <header class="app-header">
     <div class="clay-card header-card">
-      <div class="brand-title">
-        <div class="brand-logo-clay">🦘</div>
-        <div>
-          <h1 id="mainBrandTitle">2026 호주머니 0원의 배낭연수</h1>
-          <p>시드니 여행 동선 · 체크리스트 · 정산 · 서류 & 메모 · 사진 공유</p>
+      <div class="brand-title" style="justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div class="brand-logo-clay">🦘</div>
+          <div>
+            <h1 id="mainBrandTitle">2026 호주머니 0원의 배낭연수</h1>
+            <p>시드니 여행 동선 · 체크리스트 · 정산 · 서류 & 메모 · 사진 공유</p>
+          </div>
+        </div>
+
+        <!-- 실시간 구글 클라우드 싱크 상태 배지 -->
+        <div id="cloudSyncStatusBadge" class="clay-badge badge-green" style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px;" onclick="openCloudSyncConfigModal()">
+          <span style="width: 8px; height: 8px; background: #2E7D32; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite;"></span>
+          <span id="cloudStatusText">☁️ Realtime Sync 켜짐</span>
         </div>
       </div>
 
@@ -54,7 +62,6 @@
 
     <!-- 📍 [탭 1] 시드니 지도 & 동적 일정 사이드바 -->
     <section id="tab-map" class="tab-content active">
-      <!-- 요구사항 1: PC에서는 2열 같은 행 배치 / 모바일에서는 세로 1열 나열 -->
       <div class="info-cards-container">
         
         <!-- 숙소 정보 카드 -->
@@ -125,7 +132,7 @@
       </div>
     </section>
 
-    <!-- 📋 [탭 2] 체크리스트 탭 (요구사항 2: PC 2*2 / 모바일 1*4) -->
+    <!-- 📋 [탭 2] 체크리스트 탭 -->
     <section id="tab-checklist" class="tab-content">
       <div style="margin-bottom: 16px;">
         <h2 style="font-weight: 800; font-size: 1.2rem;">여행 단계별 체크리스트 📋</h2>
@@ -449,8 +456,40 @@
     </div>
   </div>
 
+  <!-- [구글 클라우드 싱크 연동 모달] -->
+  <div class="modal-overlay" id="cloudSyncModalOverlay" style="z-index: 3200;">
+    <div class="clay-modal">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--sydney-ocean);"><i class="fa-solid fa-cloud-arrow-up"></i> 구글 파이어베이스 실시간 동기화 설정</h3>
+        <button class="close-btn" onclick="closeCloudSyncConfigModal()">&times;</button>
+      </div>
+      <div style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+        친구들과 일정을 실시간으로 공유하고 구글 클라우드에 영구 보존할 수 있습니다.<br>
+        * Firebase 콘솔의 Config 키를 아래에 입력하시면 0.1초 실시간 동기화가 가동됩니다!
+      </div>
+      <form onsubmit="saveFirebaseConfigModal(event)">
+        <div class="form-group">
+          <label class="form-label">Firebase apiKey</label>
+          <input type="text" id="fbApiKey" class="form-control" placeholder="AIzaSy...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Firebase projectId</label>
+          <input type="text" id="fbProjectId" class="form-control" placeholder="sydney-travel-app">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px;">
+          <button type="button" class="clay-btn clay-btn-secondary" onclick="closeCloudSyncConfigModal()">닫기</button>
+          <button type="submit" class="clay-btn clay-btn-primary">동기화 연결하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Firebase App & Firestore SDK CDN (구글 클라우드 실시간 Sync 연동) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.2.3"></script>
+  <script src="app.js?v=1.3.0"></script>
 </body>
 </html>
