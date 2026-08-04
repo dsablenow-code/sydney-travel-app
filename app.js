@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.5.0
-   (다크모드 토글 / 인당지출 1*1 분리 / 메모-서류 순서 변경 지원)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.5.1
+   (행 추가 시 초기 기본값 변경: 항공료/2000-01-01/업체/내역/트래블 카드)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -1097,17 +1097,20 @@ window.deleteChecklistItem = function(category, id) {
   renderChecklist();
 };
 
+/* 💡 [행 추가 버튼 클릭 이벤트 핸들러] 초기 기본값 요청 반영:
+   구분: 항공료 / 결제일자: 2000-01-01 / 업체명: 업체 / 내역: 내역 / 결제방법: 트래블 카드
+*/
 window.triggerAddSettlementRow = function() {
   const newRow = {
     id: Date.now(),
-    category: '식비',
-    date: '2026-08-20',
-    vendor: '현지 식당',
-    detail: '시드니 현지 식사',
-    krw: Math.round(50 * globalExchangeRate),
-    aud: 50,
-    rate: globalExchangeRate,
-    method: '트래블월렛',
+    category: '항공료',
+    date: '2000-01-01',
+    vendor: '업체',
+    detail: '내역',
+    krw: 0,
+    aud: 0,
+    rate: globalExchangeRate || 900,
+    method: '트래블 카드',
     isGrantUsed: true,
     isSettled: true
   };
