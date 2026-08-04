@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 스타일시트 v1.6.2
-   (마우스 호버 시 일정요약 슬라이딩 자동 확장 & 이탈 시 부드럽게 닫힘 탑재)
+   2026 호주머니 0원의 배낭연수 스타일시트 v1.6.3
+   (플로팅 녹색 버튼 콤팩트 초슬림 아이콘 배지 개편 - 본문 가림 100% 방지)
    ========================================================================== */
 
 :root {
@@ -493,37 +493,46 @@ body.dark-mode .per-person-full-card {
 }
 
 /* ================= ================= =================
-   📅 [마우스 호버 슬라이딩] 마우스를 올리면 길게 뻗어나오는 일정 드로어
+   💡 [개편] 초슬림 콤팩트 아이콘 배지 (본문 가림 100% 방지)
    ================= ================= ================= */
-.global-drawer-wrapper {
-  position: fixed;
-  top: 160px;
-  right: 0;
-  z-index: 2200;
-}
-
 .global-itinerary-toggle-btn {
-  position: absolute;
+  position: fixed;
   right: 0;
-  top: 0;
+  top: 180px;
+  z-index: 2200;
   background: var(--sydney-ocean);
   color: white;
   border: none;
-  padding: 12px 16px 12px 14px;
-  border-radius: 24px 0 0 24px;
-  box-shadow: -4px 6px 18px rgba(0, 128, 148, 0.4);
-  font-size: 0.85rem;
+  padding: 10px 8px 10px 12px;
+  border-radius: 20px 0 0 20px;
+  box-shadow: -3px 4px 12px rgba(0, 128, 148, 0.35);
+  font-size: 0.82rem;
   font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 6px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
-  z-index: 2210;
 }
 
-/* 마우스 올리면(Hover) 패널이 길게 뻗어나옴 */
+/* 평소에는 글자 숨김 ➔ 단 32px 슬림 배지로 본문 100% 안 가림 */
+.global-itinerary-toggle-btn span {
+  display: none;
+}
+
+/* 마우스 올리면 글자 스르륵 뻗어나옴! */
+.global-itinerary-toggle-btn:hover {
+  padding: 10px 16px 10px 14px;
+  background: #006677;
+  box-shadow: -4px 6px 18px rgba(0, 128, 148, 0.5);
+}
+
+.global-itinerary-toggle-btn:hover span {
+  display: inline;
+}
+
+/* 드로어 패널 */
 .global-itinerary-drawer {
   position: fixed;
   top: 0;
@@ -542,7 +551,7 @@ body.dark-mode .per-person-full-card {
   overscroll-behavior: contain;
 }
 
-/* 마우스를 올리거나(.hover-active) 활성화 상태(.active) 시 뻗어나옴 */
+/* 호주머니 호버 또는 클릭 시 슬라이딩으로 길게 뻗어나옴 */
 .global-itinerary-drawer.hover-active,
 .global-itinerary-drawer.active {
   right: 0 !important;

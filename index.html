@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 드로어 열림 상태에서 메인동시 수정 가능 & 휠 확대방지 (v=1.6.1) -->
-  <link rel="stylesheet" href="styles.css?v=1.6.1">
+  <!-- 녹색 버튼 초슬림 배지 개편으로 본문 가림 100% 원천 차단 (v=1.6.3) -->
+  <link rel="stylesheet" href="styles.css?v=1.6.3">
 </head>
 <body>
 
@@ -62,7 +62,7 @@
   </header>
 
   <!-- ================= ================= =================
-       📅 전역 플로팅 일정 요약 토글 버튼 & 메인 페이지 동시 작업 드로어 패널
+       📅 전역 슬림 플로팅 버튼 & 호버 슬라이드 드로어 패널 (본문 가림 방지 초슬림 배지)
        ================= ================= ================= -->
   <button id="globalItineraryToggleBtn" class="global-itinerary-toggle-btn" onclick="toggleGlobalItineraryDrawer()" title="일정 요약 접기/펴기">
     <i class="fa-solid fa-calendar-days"></i> <span>일정 요약</span>
@@ -577,6 +577,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.6.1"></script>
+  <script src="app.js?v=1.6.3"></script>
 </body>
 </html>
