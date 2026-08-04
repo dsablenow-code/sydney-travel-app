@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 스타일시트 v1.6.0
-   (전역 플로팅 일정 사이드 드로어 토글바 탑재 & 지도&동선 탭 전용 수정 제한)
+   2026 호주머니 0원의 배낭연수 스타일시트 v1.6.1
+   (드로어 열림 상태에서 메인페이지 동시 수정 가능 & 휠 스크롤 확대/축소 부작용 완전 차단)
    ========================================================================== */
 
 :root {
@@ -493,13 +493,13 @@ body.dark-mode .per-person-full-card {
 }
 
 /* ================= ================= =================
-   📅 [신규] 모든 페이지 전역 사이드 플로팅 일정 드로어
+   📅 [개선] 메인 페이지 동시 작업 가능 플로팅 사이드 드로어
    ================= ================= ================= */
 .global-itinerary-toggle-btn {
   position: fixed;
   right: 0;
   top: 180px;
-  z-index: 1500;
+  z-index: 2200;
   background: var(--sydney-ocean);
   color: white;
   border: none;
@@ -527,12 +527,16 @@ body.dark-mode .per-person-full-card {
   width: 360px;
   height: 100vh;
   background: var(--clay-card-bg);
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.25);
-  z-index: 2500;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
+  z-index: 2100;
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 20px;
   display: flex;
   flex-direction: column;
+  pointer-events: auto;
+  /* 💡 휠 스크롤 부작용 완벽 방어 */
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 .global-itinerary-drawer.active {
@@ -576,22 +580,8 @@ body.dark-mode .per-person-full-card {
   flex-direction: column;
   gap: 14px;
   padding-right: 4px;
-}
-
-.drawer-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
-  z-index: 2400;
-  display: none;
-}
-
-.drawer-backdrop.active {
-  display: block;
+  /* 💡 드로어 내부 스크롤 고정 */
+  overscroll-behavior: contain;
 }
 
 /* 모달 레이아웃 */

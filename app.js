@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.0
-   (전역 플로팅 일정 사이드 드로어 토글바 탑재 & 지도&동선 탭 전용 수정 제한)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.1
+   (드로어 열림 상태에서 메인페이지 동시 수정 가능 & 휠 스크롤 확대/축소 부작용 완전 차단)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -187,39 +187,40 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDataFromStorage();
   initTabNavigation();
   renderItinerarySidebar();
-  renderDrawerItineraryList(); // 📅 신규 전역 일정 드로어 렌더링
+  renderDrawerItineraryList(); // 📅 전역 일정 드로어 렌더링
   initMap();
   renderChecklist();
   renderSettlementTable();
   initFirebaseCloudSync();
   initMultiWindowSyncChannel();
   initKeyboardShortcutListeners();
+
+  // 💡 드로어 휠 스크롤 전파 방지 리스너 (지도 확대/축소 및 화면 확대 부작용 100% 방지)
+  const drawer = document.getElementById('globalItineraryDrawer');
+  if (drawer) {
+    drawer.addEventListener('wheel', (e) => {
+      e.stopPropagation();
+    }, { passive: true });
+  }
 });
 
-// 📅 전역 슬라이딩 일정 사이드 드로어 제어 함수
+// 📅 전역 슬라이딩 일정 사이드 드로어 제어 함수 (메인 페이지 동시 수정 허용!)
 window.toggleGlobalItineraryDrawer = function() {
   const drawer = document.getElementById('globalItineraryDrawer');
-  const backdrop = document.getElementById('globalDrawerBackdrop');
-  if (drawer && backdrop) {
+  if (drawer) {
     const isActive = drawer.classList.toggle('active');
     if (isActive) {
-      backdrop.classList.add('active');
       renderDrawerItineraryList(); // 열 때 최신 일정 데이터 업데이트
-    } else {
-      backdrop.classList.remove('active');
     }
   }
 };
 
 window.closeGlobalItineraryDrawer = function() {
   const drawer = document.getElementById('globalItineraryDrawer');
-  const backdrop = document.getElementById('globalDrawerBackdrop');
   if (drawer) drawer.classList.remove('active');
-  if (backdrop) backdrop.classList.remove('active');
 };
 
-/* 📅 전역 일정 드로어 패널용 읽기 전용(Read-Only) 렌더링 함수:
-   요구사항 반영 - 수정 버튼은 제거하고 읽기 전용으로만 구성되며, 세부 수정은 오직 [지도 & 동선] 탭에서 가능 */
+/* 📅 전역 일정 드로어 패널용 읽기 전용 렌더링 함수 */
 function renderDrawerItineraryList() {
   const container = document.getElementById('drawerItineraryList');
   if (!container) return;
@@ -508,7 +509,7 @@ function broadcastSyncToOtherWindows() {
 function renderAllViews() {
   renderHotelAndEmergencyDisplay();
   renderItinerarySidebar();
-  renderDrawerItineraryList(); // 📅 신규 전역 일정 드로어 갱신
+  renderDrawerItineraryList(); // 📅 전역 일정 드로어 갱신
   updateMapMarkersAndPolylines();
   renderChecklist();
   renderSettlementTable();

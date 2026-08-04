@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 전역 일정 사이드 토글바 탑재 버전 (v=1.6.0) -->
-  <link rel="stylesheet" href="styles.css?v=1.6.0">
+  <!-- 드로어 열림 상태에서 메인동시 수정 가능 & 휠 확대방지 (v=1.6.1) -->
+  <link rel="stylesheet" href="styles.css?v=1.6.1">
 </head>
 <body>
 
@@ -62,7 +62,7 @@
   </header>
 
   <!-- ================= ================= =================
-       📅 전역 플로팅 일정 요약 토글 버튼 & 슬라이딩 사이드 드로어 (모든 페이지 노출)
+       📅 전역 플로팅 일정 요약 토글 버튼 & 메인 페이지 동시 작업 드로어 패널
        ================= ================= ================= -->
   <button id="globalItineraryToggleBtn" class="global-itinerary-toggle-btn" onclick="toggleGlobalItineraryDrawer()" title="일정 요약 접기/펴기">
     <i class="fa-solid fa-calendar-days"></i> <span>일정 요약</span>
@@ -80,7 +80,6 @@
       <!-- JS에서 읽기 전용으로 생성 -->
     </div>
   </aside>
-  <div id="globalDrawerBackdrop" class="drawer-backdrop" onclick="closeGlobalItineraryDrawer()"></div>
 
   <!-- ================= ================= =================
        메인 컨테이너 (5대 탭)
@@ -578,6 +577,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.6.0"></script>
+  <script src="app.js?v=1.6.1"></script>
 </body>
 </html>
