@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.4.5
-   (4인 기준 '인당 지출' 2칸 높이 대형 통합 카드 조건별 계산 공식 탑재)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.5.0
+   (다크모드 토글 / 인당지출 1*1 분리 / 메모-서류 순서 변경 지원)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -183,6 +183,7 @@ let undoStack = [];
 let redoStack = [];
 
 document.addEventListener('DOMContentLoaded', () => {
+  initDarkMode();
   loadDataFromStorage();
   initTabNavigation();
   renderItinerarySidebar();
@@ -193,6 +194,30 @@ document.addEventListener('DOMContentLoaded', () => {
   initMultiWindowSyncChannel();
   initKeyboardShortcutListeners();
 });
+
+// 🌙 다크모드 제어
+function initDarkMode() {
+  const savedTheme = localStorage.getItem('sydney_theme');
+  if (savedTheme === 'dark') {
+    document.body.classList.add('dark-mode');
+    updateThemeBtnText(true);
+  }
+}
+
+window.toggleDarkMode = function() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  localStorage.setItem('sydney_theme', isDark ? 'dark' : 'light');
+  updateThemeBtnText(isDark);
+};
+
+function updateThemeBtnText(isDark) {
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) {
+    btn.innerHTML = isDark 
+      ? '<i class="fa-solid fa-sun"></i> <span>라이트모드</span>' 
+      : '<i class="fa-solid fa-moon"></i> <span>다크모드</span>';
+  }
+}
 
 function getItemWithFallback(masterKey, legacyPrefix) {
   const masterData = localStorage.getItem(masterKey);
@@ -1038,7 +1063,7 @@ function renderChecklist() {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: #F8F6F0;
+        background: var(--input-bg);
         padding: 8px 12px;
         border-radius: 12px;
         box-shadow: var(--clay-shadow-pressed);
@@ -1114,7 +1139,7 @@ function applyGlobalExchangeRate(newRate) {
   renderSettlementTable();
 }
 
-/* 📊 [핵심 정산 연산 & 렌더링]: 4인 기준 '인당 지출' 2칸 높이 대형 통합 카드 탑재 */
+/* 📊 [핵심 정산 연산 & 렌더링]: 2*3 요약 + 1*1 단독 인당지출 카드 연산 */
 function renderSettlementTable() {
   const tbody = document.getElementById('settlementTbody');
   if (!tbody) return;
@@ -1145,7 +1170,7 @@ function renderSettlementTable() {
     }
 
     const tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid #F1ECE1';
+    tr.style.borderBottom = '1px solid var(--input-border)';
 
     const categoryOptionsHtml = categoryOptions.map(opt => `
       <option value="${opt}" ${row.category === opt ? 'selected' : ''}>${opt}</option>
@@ -1160,9 +1185,9 @@ function renderSettlementTable() {
           ${categoryOptionsHtml}
         </select>
       </td>
-      <td style="padding:6px;"><input type="date" value="${row.date}" onchange="updateSettlementField(${row.id}, 'date', this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.8rem;"></td>
-      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.vendor)}" onchange="updateSettlementField(${row.id}, 'vendor', this.value)" style="width:100%; border:none; background:transparent; font-weight:600; outline:none;"></td>
-      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.detail)}" onchange="updateSettlementField(${row.id}, 'detail', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
+      <td style="padding:6px;"><input type="date" value="${row.date}" onchange="updateSettlementField(${row.id}, 'date', this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.8rem; color:var(--text-primary);"></td>
+      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.vendor)}" onchange="updateSettlementField(${row.id}, 'vendor', this.value)" style="width:100%; border:none; background:transparent; font-weight:600; outline:none; color:var(--text-primary);"></td>
+      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.detail)}" onchange="updateSettlementField(${row.id}, 'detail', this.value)" style="width:100%; border:none; background:transparent; outline:none; color:var(--text-primary);"></td>
       
       <td style="padding:6px; text-align:center;">
         <input type="checkbox" ${isGrant ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isGrantUsed', this.checked)" style="width:18px; height:18px; accent-color: var(--sydney-ocean); cursor:pointer;">
@@ -1178,9 +1203,9 @@ function renderSettlementTable() {
         <input type="number" value="${row.aud}" onchange="updateSettlementField(${row.id}, 'aud', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; color:var(--sydney-ocean); outline:none;" placeholder="0">
       </td>
       <td style="padding:6px;">
-        <input type="number" value="${row.rate || globalExchangeRate}" onchange="updateSettlementField(${row.id}, 'rate', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; outline:none;" placeholder="900">
+        <input type="number" value="${row.rate || globalExchangeRate}" onchange="updateSettlementField(${row.id}, 'rate', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; outline:none; color:var(--text-primary);" placeholder="900">
       </td>
-      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.method)}" onchange="updateSettlementField(${row.id}, 'method', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
+      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.method)}" onchange="updateSettlementField(${row.id}, 'method', this.value)" style="width:100%; border:none; background:transparent; outline:none; color:var(--text-primary);"></td>
       
       <td style="padding:6px; text-align:center;">
         <button class="clay-btn clay-btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deleteSettlementRow(${row.id})">
@@ -1191,7 +1216,6 @@ function renderSettlementTable() {
     tbody.appendChild(tr);
   });
 
-  // 📊 상단 총괄 환율 텍스트 갱신
   const rateDisplayEl = document.getElementById('displayGlobalRate');
   if (rateDisplayEl) rateDisplayEl.innerText = `1 AUD = ₩ ${globalExchangeRate.toLocaleString()}`;
 
@@ -1229,7 +1253,7 @@ function renderSettlementTable() {
   document.getElementById('summaryGrantBalance').innerText = `₩ ${grantBalance.toLocaleString()}`;
   document.getElementById('summaryPersonalBalance').innerText = `₩ ${personalBalance.toLocaleString()}`;
 
-  // 💡 인당 지출 카드 DOM 갱신
+  // 💡 인당 지출 1*1 단독 카드 DOM 갱신
   const perPersonEl = document.getElementById('summaryPerPersonExpense');
   const perPersonSubEl = document.getElementById('summaryPerPersonSubText');
   if (perPersonEl) perPersonEl.innerText = `₩ ${perPersonExpense.toLocaleString()}`;
@@ -1355,7 +1379,7 @@ function renderMemos() {
   memoData.forEach(m => {
     const card = document.createElement('div');
     card.style.cssText = `
-      background: #FFF9C4;
+      background: var(--aus-gold-soft);
       padding: 14px;
       border-radius: 16px;
       box-shadow: var(--clay-shadow-main);
@@ -1367,9 +1391,9 @@ function renderMemos() {
     `;
 
     card.innerHTML = `
-      <p style="font-weight:600; color:#222; line-height:1.4; word-break:keep-all;">${escapeHTML(m.text)}</p>
+      <p style="font-weight:600; color:var(--text-primary); line-height:1.4; word-break:keep-all;">${escapeHTML(m.text)}</p>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px dashed #E6DF9A; padding-top:6px;">
-        <span style="font-size:0.72rem; color:#777;">${m.time || '최근'}</span>
+        <span style="font-size:0.72rem; color:var(--text-muted);">${m.time || '최근'}</span>
         <div>
           <button class="clay-btn clay-btn-secondary" style="padding:2px 6px; font-size:0.7rem; margin-right:4px;" onclick="editMemo('${m.id}')">
             <i class="fa-solid fa-pen"></i>
@@ -1478,7 +1502,7 @@ function renderPhotos() {
           <i class="fa-solid fa-download"></i> 다운
         </button>
       </div>
-      <div style="display:flex; justify-around; background:#F8F6F0; padding:4px; border-radius:8px; gap:2px;">
+      <div style="display:flex; justify-around; background:var(--input-bg); padding:4px; border-radius:8px; gap:2px;">
         <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'heart')">❤️ ${p.heart || 0}</button>
         <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'thumb')">👍 ${p.thumb || 0}</button>
         <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'wow')">😮 ${p.wow || 0}</button>

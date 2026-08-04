@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 4컬럼 2칸 높이 인당지출 통합카드 신설 버전 (v=1.4.5) -->
-  <link rel="stylesheet" href="styles.css?v=1.4.5">
+  <!-- 다크모드 & 메모 우선배치 & 인당지출 1*1 분리 버전 (v=1.5.0) -->
+  <link rel="stylesheet" href="styles.css?v=1.5.0">
 </head>
 <body>
 
@@ -18,19 +18,25 @@
        ================= ================= ================= -->
   <header class="app-header">
     <div class="clay-card header-card">
-      <div class="brand-title" style="justify-content: space-between;">
+      <div class="brand-title" style="justify-content: space-between; flex-wrap: wrap; gap: 10px;">
         <div style="display: flex; align-items: center; gap: 14px;">
           <div class="brand-logo-clay">🦘</div>
           <div>
             <h1 id="mainBrandTitle">2026 호주머니 0원의 배낭연수</h1>
-            <p>시드니 여행 동선 · 체크리스트 · 정산 · 서류 & 메모 · 사진 공유</p>
           </div>
         </div>
 
-        <!-- 실시간 구글 클라우드 싱크 상태 배지 -->
-        <div id="cloudSyncStatusBadge" class="clay-badge badge-green" style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px;" onclick="openCloudSyncConfigModal()">
-          <span style="width: 8px; height: 8px; background: #2E7D32; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite;"></span>
-          <span id="cloudStatusText">☁️ Realtime Sync 켜짐</span>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <!-- 🌙 다크모드 토글 버튼 -->
+          <button id="themeToggleBtn" class="clay-btn clay-btn-secondary" style="padding: 6px 12px;" onclick="toggleDarkMode()">
+            <i class="fa-solid fa-moon"></i> <span>다크모드</span>
+          </button>
+
+          <!-- 실시간 구글 클라우드 싱크 상태 배지 -->
+          <div id="cloudSyncStatusBadge" class="clay-badge badge-green" style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px;" onclick="openCloudSyncConfigModal()">
+            <span style="width: 8px; height: 8px; background: #2E7D32; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite;"></span>
+            <span id="cloudStatusText">☁️ Realtime Sync 켜짐</span>
+          </div>
         </div>
       </div>
 
@@ -132,7 +138,7 @@
       </div>
     </section>
 
-    <!-- 📋 [탭 2] 체크리스트 탭 -->
+    <!-- 📋 [탭 2] 체크리스트 탭 (PC: 2*2 / 모바일: 1*4) -->
     <section id="tab-checklist" class="tab-content">
       <div style="margin-bottom: 16px;">
         <h2 style="font-weight: 800; font-size: 1.2rem;">여행 단계별 체크리스트 📋</h2>
@@ -152,10 +158,11 @@
           <ul id="listBefore" class="checklist-items-group" style="list-style: none; display: flex; flex-direction: column; gap: 8px;"></ul>
         </div>
 
+        <!-- 💡 2. 여행 중 확인 (텍스트 변경 요청 반영 완료) -->
         <div class="clay-card" style="border-top: 6px solid var(--aus-gold); margin-bottom:0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 style="font-size: 0.98rem; font-weight: 800; color: #B37D00;">
-              <i class="fa-solid fa-location-dot"></i> 2. 여행 중 점검 (During)
+              <i class="fa-solid fa-location-dot"></i> 2. 여행 중 확인 (During)
             </h3>
             <button class="clay-btn clay-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="addChecklistItem('during')">
               <i class="fa-solid fa-plus"></i> 추가
@@ -190,7 +197,7 @@
       </div>
     </section>
 
-    <!-- 📊 [탭 3] 2026 해외배낭연수 정산서 엑셀 데이터 그리드 -->
+    <!-- 📊 [탭 3] 2026 해외배낭연수 정산서 (요약 2*3 고정 + 1*1 인당지출 단독 카드) -->
     <section id="tab-budget" class="tab-content">
       <div class="clay-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
@@ -201,7 +208,7 @@
           
           <!-- 💱 전역 환율 일괄적용 & Ctrl+Z / Ctrl+Y 실행취소 툴바 -->
           <div style="display: flex; gap: 8px; flex-wrap: wrap; width: 100%; align-items: center;">
-            <div style="background: #F8F6F0; border: 1px solid #E5DEC9; padding: 6px 12px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 8px;">
+            <div style="background: var(--input-bg); border: 1px solid var(--input-border); padding: 6px 12px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 0.8rem; font-weight: 700; color: var(--sydney-ocean);"><i class="fa-solid fa-coins"></i> 총괄 환율:</span>
               <span style="font-size: 0.85rem; font-weight: 800;" id="displayGlobalRate">1 AUD = ₩ 900</span>
               <button class="clay-btn clay-btn-secondary" style="padding: 2px 8px; font-size: 0.72rem;" onclick="triggerEditGlobalRate()"><i class="fa-solid fa-pen"></i> 환율 일괄 변경</button>
@@ -229,8 +236,8 @@
           </div>
         </div>
 
-        <!-- 📊 정산 요약 카드 레이아웃 (4컬럼 2행 + 2칸 높이 인당지출 통합 카드 신설) -->
-        <div class="settlement-summary-container">
+        <!-- 📊 정산 요약 영역 (3컬럼 2행 [2*3] 레이아웃 고정 - 반창에서도 깨지지 않음) -->
+        <div class="settlement-summary-2x3">
           <!-- 컬럼 1: 총 지원금 & 개인 총 지출 -->
           <div class="summary-col">
             <div style="background: var(--aus-gold-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
@@ -238,23 +245,23 @@
                 <span style="font-size: 0.78rem; font-weight: 700; color: #B37D00;">총 지원금</span>
                 <button class="clay-btn clay-btn-secondary" style="padding: 2px 6px; font-size: 0.7rem;" onclick="triggerEditGrant()"><i class="fa-solid fa-pen"></i> 수정</button>
               </div>
-              <div id="summaryGrant" style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin-top: 4px;">₩ 2,500,000</div>
+              <div id="summaryGrant" style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-top: 4px;">₩ 2,500,000</div>
             </div>
             <div style="background: var(--eucalyptus-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
               <span style="font-size: 0.78rem; font-weight: 700; color: var(--eucalyptus-green);">개인 총 지출</span>
-              <div id="summaryPersonalTotalExpense" style="font-size: 1.15rem; font-weight: 800; color: var(--eucalyptus-green); margin-top: 4px;">₩ 0</div>
+              <div id="summaryPersonalTotalExpense" style="font-size: 1.1rem; font-weight: 800; color: var(--eucalyptus-green); margin-top: 4px;">₩ 0</div>
             </div>
           </div>
 
-          <!-- 컬럼 2: 총 지출액(지원금) & 총 지출액(개인) [정산완료 여부 반영] -->
+          <!-- 컬럼 2: 총 지출액(지원금) & 총 지출액(개인) -->
           <div class="summary-col">
             <div style="background: var(--uluru-red-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
               <span style="font-size: 0.78rem; font-weight: 700; color: var(--uluru-red);">총 지출액(지원금)</span>
-              <div id="summaryGrantExpense" style="font-size: 1.15rem; font-weight: 800; color: var(--uluru-red); margin-top: 4px;">₩ 0</div>
+              <div id="summaryGrantExpense" style="font-size: 1.1rem; font-weight: 800; color: var(--uluru-red); margin-top: 4px;">₩ 0</div>
             </div>
             <div style="background: #EDE7F6; padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
               <span style="font-size: 0.78rem; font-weight: 700; color: #5E35B1;">총 지출액(개인)</span>
-              <div id="summaryPersonalExpense" style="font-size: 1.15rem; font-weight: 800; color: #5E35B1; margin-top: 4px;">₩ 0</div>
+              <div id="summaryPersonalExpense" style="font-size: 1.1rem; font-weight: 800; color: #5E35B1; margin-top: 4px;">₩ 0</div>
             </div>
           </div>
 
@@ -262,30 +269,32 @@
           <div class="summary-col">
             <div style="background: var(--sydney-ocean-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
               <span style="font-size: 0.78rem; font-weight: 700; color: var(--sydney-ocean);">지원금 차액</span>
-              <div id="summaryGrantBalance" style="font-size: 1.15rem; font-weight: 800; color: var(--sydney-ocean); margin-top: 4px;">₩ 0</div>
+              <div id="summaryGrantBalance" style="font-size: 1.1rem; font-weight: 800; color: var(--sydney-ocean); margin-top: 4px;">₩ 0</div>
             </div>
             <div style="background: #E8EAF6; padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
               <span style="font-size: 0.78rem; font-weight: 700; color: #3F51B5;">개인 정산 차액</span>
-              <div id="summaryPersonalBalance" style="font-size: 1.15rem; font-weight: 800; color: #3F51B5; margin-top: 4px;">₩ 0</div>
+              <div id="summaryPersonalBalance" style="font-size: 1.1rem; font-weight: 800; color: #3F51B5; margin-top: 4px;">₩ 0</div>
             </div>
           </div>
+        </div>
 
-          <!-- 💡 컬럼 4: 2칸 높이의 '인당 지출' 대형 통합 카드 (신설!) -->
-          <div class="summary-col summary-col-main" style="background: #FFF3E0; border: 2px solid #FFE0B2; padding: 16px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed); display: flex; flex-direction: column; justify-content: center;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.85rem; font-weight: 800; color: #E65100;"><i class="fa-solid fa-users"></i> 인당 지출</span>
-              <span style="font-size: 0.7rem; font-weight: 700; color: #E65100; background: #FFE0B2; padding: 2px 6px; border-radius: 8px;">4인 기준</span>
+        <!-- 💡 [2*3 밑에 1*1 단독 인당지출 카드 분리!] -->
+        <div class="per-person-full-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 0.95rem; font-weight: 800; color: #E65100;"><i class="fa-solid fa-users"></i> 인당 지출</span>
+              <span style="font-size: 0.72rem; font-weight: 700; color: #E65100; background: #FFE0B2; padding: 2px 8px; border-radius: 8px;">4인 기준</span>
             </div>
-            <div id="summaryPerPersonExpense" style="font-size: 1.35rem; font-weight: 900; color: #E65100; margin-top: 8px;">₩ 0</div>
-            <div id="summaryPerPersonSubText" style="font-size: 0.72rem; color: #BF360C; margin-top: 6px; line-height: 1.3;">1인당 최종 부담액</div>
+            <div id="summaryPerPersonSubText" style="font-size: 0.76rem; color: #BF360C; font-weight: 600;">1인당 최종 부담액</div>
           </div>
+          <div id="summaryPerPersonExpense" style="font-size: 1.4rem; font-weight: 900; color: #E65100; margin-top: 6px;">₩ 0</div>
         </div>
 
         <!-- 📊 정산서 표 -->
         <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
           <table id="settlementTable" style="width: 100%; min-width: 920px; border-collapse: collapse; font-size: 0.83rem;">
             <thead>
-              <tr style="background: #F5F2EB; border-bottom: 2px solid #E5DEC9; text-align: left;">
+              <tr style="background: var(--input-bg); border-bottom: 2px solid var(--input-border); text-align: left;">
                 <th style="padding: 8px; border-radius: 8px 0 0 8px; width: 40px;">연번</th>
                 <th style="padding: 8px; width: 110px;">구 분 (선택)</th>
                 <th style="padding: 8px; width: 100px;">결제일자</th>
@@ -308,12 +317,26 @@
       </div>
     </section>
 
-    <!-- 📁 [탭 4] 공유 문서함 & 클레이 스티키 메모장 -->
+    <!-- 📁 [탭 4] 공유 문서함 & 클레이 스티키 메모장 (메모가 서류보다 먼저 위로 오도록 순서 변경!) -->
     <section id="tab-docs" class="tab-content">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="docs-memo-container">
+      <div class="docs-memo-container">
         
-        <div class="clay-card">
-          <div class="docs-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <!-- 💡 1. 클레이 스티키 메모장 (서류보다 위에 먼저 노출!) -->
+        <div class="clay-card" style="margin-bottom: 0;">
+          <div class="memo-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="font-weight: 800; font-size: 1.1rem;"><i class="fa-solid fa-note-sticky"></i> 클레이 스티키 메모장</h3>
+            <button class="clay-btn clay-btn-primary" style="padding: 5px 12px; font-size: 0.78rem;" onclick="triggerAddMemo()">
+              <i class="fa-solid fa-plus"></i> 메모 추가
+            </button>
+          </div>
+          <div id="memoGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; max-height: 400px; overflow-y: auto;">
+            <!-- JS에서 생성 -->
+          </div>
+        </div>
+
+        <!-- 💡 2. 서류 공유함 (메모장 아래 배치) -->
+        <div class="clay-card" style="margin-bottom: 0;">
+          <div class="docs-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
             <h3 style="font-weight: 800; font-size: 1.1rem;"><i class="fa-solid fa-file-arrow-up"></i> 서류 공유함</h3>
             <button class="clay-btn clay-btn-primary" style="padding: 5px 10px; font-size: 0.76rem;" onclick="triggerDownloadAllDocs()">
               <i class="fa-solid fa-file-zipper"></i> 현재 분류 ZIP 모아받기
@@ -329,7 +352,7 @@
             <button class="clay-badge badge-dark doc-tag-chip" data-tag="기타" onclick="filterDocTag('기타', this)">기타</button>
           </div>
 
-          <div style="background: #F8F6F0; border: 2px dashed #D5CDC0; padding: 16px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 14px; cursor: pointer;" id="dropZone" onclick="triggerDocUpload()">
+          <div style="background: var(--input-bg); border: 2px dashed var(--input-border); padding: 16px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 14px; cursor: pointer;" id="dropZone" onclick="triggerDocUpload()">
             <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.8rem; color: var(--sydney-ocean);"></i>
             <p style="font-size: 0.85rem; font-weight: 700; margin-top: 4px; color: var(--text-primary);">여기를 클릭하여 서류 파일 추가하기</p>
             <p style="font-size: 0.72rem; color: var(--text-muted);">PDF, JPG, PNG, DOCX, HWP 등 모든 서류 지원</p>
@@ -339,18 +362,6 @@
           <ul id="sharedFileList" style="list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto;">
             <!-- JS에서 생성 -->
           </ul>
-        </div>
-
-        <div class="clay-card">
-          <div class="memo-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="font-weight: 800; font-size: 1.1rem;"><i class="fa-solid fa-note-sticky"></i> 클레이 스티키 메모장</h3>
-            <button class="clay-btn clay-btn-primary" style="padding: 5px 12px; font-size: 0.78rem;" onclick="triggerAddMemo()">
-              <i class="fa-solid fa-plus"></i> 메모 추가
-            </button>
-          </div>
-          <div id="memoGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; max-height: 400px; overflow-y: auto;">
-            <!-- JS에서 생성 -->
-          </div>
         </div>
 
       </div>
@@ -547,6 +558,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.4.5"></script>
+  <script src="app.js?v=1.5.0"></script>
 </body>
 </html>

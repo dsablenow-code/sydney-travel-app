@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 스타일시트 v1.4.5
-   (4컬럼 그리드 인당 지출 2칸 높이 대형 통합 카드 반응형 레이아웃)
+   2026 호주머니 0원의 배낭연수 스타일시트 v1.5.0
+   (다크모드 지원 / 메모-서류 순서 및 모바일 핏 / 체크리스트 2*2&1*4 / 요약 2*3 3열 & 1*1 인당지출)
    ========================================================================== */
 
 :root {
@@ -31,6 +31,36 @@
   --clay-shadow-pressed: 
     inset 4px 4px 8px rgba(166, 180, 200, 0.4),
     inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+  --input-bg: #F8F6F0;
+  --input-border: #E5DEC9;
+}
+
+/* 🌙 [전체] 다크 모드 테마 변수 */
+body.dark-mode {
+  --clay-bg: #12181F;
+  --clay-card-bg: #1A232D;
+  --clay-border: rgba(255, 255, 255, 0.08);
+  --sydney-ocean: #26C6DA;
+  --sydney-ocean-soft: #004D40;
+  --aus-gold: #FFD54F;
+  --aus-gold-soft: #3E2723;
+  --uluru-red: #EF5350;
+  --uluru-red-soft: #4A148C;
+  --eucalyptus-green: #66BB6A;
+  --eucalyptus-soft: #1B5E20;
+  
+  --text-primary: #ECEFF1;
+  --text-secondary: #B0BEC5;
+  --text-muted: #78909C;
+  
+  --clay-shadow-main: 
+    6px 6px 16px rgba(0, 0, 0, 0.6),
+    -6px -6px 16px rgba(255, 255, 255, 0.03);
+  --clay-shadow-pressed: 
+    inset 3px 3px 8px rgba(0, 0, 0, 0.6),
+    inset -3px -3px 8px rgba(255, 255, 255, 0.03);
+  --input-bg: #263238;
+  --input-border: #37474F;
 }
 
 * {
@@ -46,6 +76,7 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   padding-bottom: 40px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .clay-card {
@@ -55,7 +86,7 @@ body {
   border: 1px solid var(--clay-border);
   padding: 24px;
   margin-bottom: 24px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
 }
 
 .app-header {
@@ -95,16 +126,12 @@ body {
   line-height: 1.2;
 }
 
-.brand-title p {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
 .clay-nav {
   display: flex;
   gap: 12px;
   overflow-x: auto;
   padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .clay-nav-btn {
@@ -173,11 +200,12 @@ body {
   top: 16px;
   left: 16px;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--clay-card-bg);
+  opacity: 0.94;
   backdrop-filter: blur(8px);
   padding: 12px 16px;
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
   max-width: 320px;
 }
 
@@ -194,11 +222,12 @@ body {
   left: 16px;
   right: 16px;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--clay-card-bg);
+  opacity: 0.94;
   backdrop-filter: blur(8px);
   padding: 12px 18px;
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
   font-size: 0.8rem;
 }
 
@@ -263,7 +292,7 @@ body {
   align-items: flex-start;
   gap: 10px;
   font-size: 0.82rem;
-  background: #F8F6F0;
+  background: var(--input-bg);
   padding: 8px 12px;
   border-radius: 10px;
   box-shadow: var(--clay-shadow-pressed);
@@ -297,7 +326,7 @@ body {
   margin-top: 10px;
   font-size: 0.76rem;
   color: var(--text-muted);
-  background: rgba(0, 128, 148, 0.06);
+  background: rgba(0, 128, 148, 0.08);
   padding: 6px 10px;
   border-radius: 8px;
 }
@@ -318,6 +347,10 @@ body {
 .badge-purple { background: #EDE7F6; color: #5E35B1; }
 .badge-orange { background: #FFF3E0; color: #E65100; }
 .badge-dark { background: #ECEFF1; color: #37474F; }
+
+body.dark-mode .badge-purple { background: #311B92; color: #D1C4E9; }
+body.dark-mode .badge-orange { background: #E65100; color: #FFE0B2; }
+body.dark-mode .badge-dark { background: #37474F; color: #ECEFF1; }
 
 .clay-btn {
   border: none;
@@ -355,18 +388,31 @@ body {
   }
 }
 
+/* 📋 [체크리스트] PC는 2*2 (2열), 모바일은 1*4 (1열) 보장! */
 .checklist-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
-/* 📊 정산 요약 4컬럼 (2행 3컬럼 + 2칸 높이 인당 지출 통합 카드) 레이아웃 */
-.settlement-summary-container {
+@media (max-width: 768px) {
+  .checklist-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 📊 [연수 정산서] 요약 영역 2*3 (3열 2행) 고정 & 반창에서도 깨지지 않게 보장 */
+.settlement-summary-2x3 {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .settlement-summary-2x3 {
+    grid-template-columns: 1fr; /* 소형 모바일에서만 1열 수직 스택 */
+  }
 }
 
 .summary-col {
@@ -375,24 +421,35 @@ body {
   gap: 10px;
 }
 
-@media (max-width: 1100px) {
-  .settlement-summary-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* 💡 [연수 정산서] 인당 지출 2*3 밑에 1*1 단독 전폭 카드 */
+.per-person-full-card {
+  width: 100%;
+  background: #FFF3E0;
+  border: 2px solid #FFE0B2;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--clay-shadow-pressed);
+  margin-bottom: 20px;
 }
 
-@media (max-width: 600px) {
-  .settlement-summary-container {
-    grid-template-columns: 1fr;
-  }
+body.dark-mode .per-person-full-card {
+  background: #3E2723;
+  border-color: #5D4037;
 }
 
-/* 서류 공유함 카드 UI 레벨업 */
+/* 📁 [서류 & 메모] 메모가 서류보다 위로 올라오도록 수직 스택 및 모바일 100% 핏 보장 */
+.docs-memo-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
 .doc-item-li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #F8F6F0;
+  background: var(--input-bg);
   padding: 12px 14px;
   border-radius: var(--radius-md);
   box-shadow: var(--clay-shadow-pressed);
@@ -444,7 +501,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   z-index: 2000;
   display: none;
@@ -460,7 +517,7 @@ body {
 .clay-modal {
   background: var(--clay-card-bg);
   border-radius: var(--radius-lg);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
   width: 100%;
   max-width: 520px;
   padding: 24px;
@@ -503,8 +560,9 @@ body {
   width: 100%;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
-  border: 1px solid #E5DEC9;
-  background: #F8F6F0;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-primary);
   box-shadow: var(--clay-shadow-pressed);
   font-size: 0.88rem;
   outline: none;
