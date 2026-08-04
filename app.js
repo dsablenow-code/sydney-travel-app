@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.5.1
-   (행 추가 시 초기 기본값 변경: 항공료/2000-01-01/업체/내역/트래블 카드)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.5.2
+   (환율 변경 시 원화(KRW) 금액 고정 & AUD 자동 재계산 엔진 탑재)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -1097,9 +1097,7 @@ window.deleteChecklistItem = function(category, id) {
   renderChecklist();
 };
 
-/* 💡 [행 추가 버튼 클릭 이벤트 핸들러] 초기 기본값 요청 반영:
-   구분: 항공료 / 결제일자: 2000-01-01 / 업체명: 업체 / 내역: 내역 / 결제방법: 트래블 카드
-*/
+/* 💡 [행 추가 버튼 클릭 이벤트] 초기 설정값: 항공료 / 2000-01-01 / 업체 / 내역 / 트래블 카드 */
 window.triggerAddSettlementRow = function() {
   const newRow = {
     id: Date.now(),
@@ -1119,7 +1117,7 @@ window.triggerAddSettlementRow = function() {
   renderSettlementTable();
 };
 
-/* 💱 [총괄 환율 일괄 변경 기능] */
+/* 💱 [총괄 환율 일괄 변경 기능]: 💡 환율 변경 시 원화(KRW) 고정 & AUD 자동 재계산! */
 window.triggerEditGlobalRate = function() {
   const input = prompt('모든 지출 행에 일괄 적용할 환율(1 AUD 당 원화)을 입력하세요:', globalExchangeRate);
   if (input !== null) {
@@ -1134,8 +1132,10 @@ function applyGlobalExchangeRate(newRate) {
   globalExchangeRate = newRate;
   settlementData.forEach(row => {
     row.rate = newRate;
-    if (row.aud) {
-      row.krw = Math.round(row.aud * newRate);
+    // 💡 환율이 변경되면 원화(KRW)를 기준으로 AUD를 (krw / newRate)로 자동 재계산! (원화 불변!)
+    const currentKRW = parseInt(row.krw, 10) || 0;
+    if (newRate > 0) {
+      row.aud = Math.round((currentKRW / newRate) * 100) / 100;
     }
   });
   saveDataToStorage();
