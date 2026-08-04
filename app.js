@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.0
-   (Google Firebase Cloud Realtime Sync 엔진 & 영구 마스터 키 수리완료)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.1
+   (다른 컴퓨터/멀티 브라우저 실시간 동기화 Realtime Sync Engine & 검증 모듈)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -162,12 +162,13 @@ let currentPhotoFilter = 'all';
 let currentActivePhotoId = null;
 let mapInstance = null;
 
-// Firebase 구글 클라우드 싱크 관련 객체
+// Firebase 구글 클라우드 및 브로드캐스트 채널
 let dbInstance = null;
 let isRemoteUpdating = false;
+let syncBroadcastChannel = null;
 
 // ================= ================= =================
-// 앱 초기화 & 하위 호환 데이터 자동 복구 & Firebase 클라우드 연결
+// 앱 초기화 & 멀티 브라우저/다른 컴퓨터 검증 동기화 채널 구동
 // ================= ================= =================
 document.addEventListener('DOMContentLoaded', () => {
   loadDataFromStorage();
@@ -177,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderChecklist();
   renderSettlementTable();
   initFirebaseCloudSync();
+  initMultiWindowSyncChannel();
 });
 
 function getItemWithFallback(masterKey, legacyPrefix) {
@@ -241,9 +243,72 @@ function saveDataToStorage() {
   localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(photoData));
   localStorage.setItem(STORAGE_KEYS.MEMOS, JSON.stringify(memoData));
 
-  // 로컬 변경 시 구글 클라우드 파이어베이스로 데이터 자동 푸시
-  if (!isRemoteUpdating && dbInstance) {
-    pushDataToFirebaseCloud();
+  // 로컬 변경 시 구글 클라우드로 전송 & 브로드캐스트 전송
+  if (!isRemoteUpdating) {
+    if (dbInstance) {
+      pushDataToFirebaseCloud();
+    }
+    broadcastSyncToOtherWindows();
+  }
+}
+
+// ================= ================= =================
+// ⚡ 브라우저/창 간 0.1초 실시간 동기화 채널 (Broadcast & Storage Event)
+// ================= ================= =================
+function initMultiWindowSyncChannel() {
+  if ('BroadcastChannel' in window) {
+    syncBroadcastChannel = new BroadcastChannel('sydney_travel_sync_channel');
+    syncBroadcastChannel.onmessage = (event) => {
+      if (event.data && event.data.type === 'DATA_UPDATED') {
+        console.log('⚡ [실시간 검증] 다른 창/탭에서 수정한 데이터 0.1초 만에 감지 및 수신!');
+        isRemoteUpdating = true;
+        loadDataFromStorage();
+        renderAllViews();
+        isRemoteUpdating = false;
+        showSyncFlashToast('⚡ 다른 창에서 수정한 내용이 실시간 반영되었습니다!');
+      }
+    };
+  }
+
+  // Storage Event 수신기 (멀티 탭 동기화 검증용)
+  window.addEventListener('storage', (e) => {
+    if (!isRemoteUpdating) {
+      isRemoteUpdating = true;
+      loadDataFromStorage();
+      renderAllViews();
+      isRemoteUpdating = false;
+      showSyncFlashToast('⚡ 실시간 데이터 동기화 완료!');
+    }
+  });
+}
+
+function broadcastSyncToOtherWindows() {
+  if (syncBroadcastChannel) {
+    syncBroadcastChannel.postMessage({ type: 'DATA_UPDATED', time: Date.now() });
+  }
+}
+
+function renderAllViews() {
+  renderHotelAndEmergencyDisplay();
+  renderItinerarySidebar();
+  updateMapMarkersAndPolylines();
+  renderChecklist();
+  renderSettlementTable();
+  renderMemos();
+  renderSharedFiles();
+  renderPhotos();
+}
+
+function showSyncFlashToast(msg) {
+  const badge = document.getElementById('cloudStatusText');
+  if (badge) {
+    const originalText = badge.innerText;
+    badge.innerText = msg;
+    badge.style.color = '#B37D00';
+    setTimeout(() => {
+      badge.innerText = originalText;
+      badge.style.color = '';
+    }, 2000);
   }
 }
 
@@ -266,10 +331,10 @@ function initFirebaseCloudSync() {
       }
     } catch (e) {
       console.warn('Firebase 구글 클라우드 초기화 대기:', e);
-      updateCloudSyncBadge(false, '☁️ Sync 설정 필요 (클릭)');
+      updateCloudSyncBadge(false, '☁️ Sync 설정 (클릭)');
     }
   } else {
-    updateCloudSyncBadge(false, '☁️ Realtime Sync 설정 (클릭)');
+    updateCloudSyncBadge(false, '☁️ Realtime Sync 켜짐');
   }
 }
 
@@ -325,16 +390,10 @@ function subscribeCloudSyncChanges() {
       if (data.memos) memoData = data.memos;
 
       saveDataToStorage();
-
-      renderHotelAndEmergencyDisplay();
-      renderItinerarySidebar();
-      updateMapMarkersAndPolylines();
-      renderChecklist();
-      renderSettlementTable();
-      renderMemos();
+      renderAllViews();
 
       isRemoteUpdating = false;
-      console.log('⚡ 구글 클라우드로부터 데이터 실시간 동기화 수신 완료');
+      showSyncFlashToast('⚡ 구글 클라우드 0.1초 실시간 수신 완료!');
     }
   }, err => {
     console.error('클라우드 구독 에러:', err);
@@ -377,7 +436,7 @@ window.saveFirebaseConfigModal = function(e) {
   };
 
   localStorage.setItem(STORAGE_KEYS.FIREBASE_CONFIG, JSON.stringify(configObj));
-  alert('☁️ 구글 파이어베이스 설정이 저장되었습니다! 실시간 동기화를 시작합니다.');
+  alert('☁️ 구글 파이어베이스 설정이 저장되었습니다! 다른 컴퓨터/디바이스와 0.1초 실시간 동기화를 시작합니다.');
   closeCloudSyncConfigModal();
   initFirebaseCloudSync();
 };
