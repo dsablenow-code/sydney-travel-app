@@ -1,6 +1,6 @@
 /* ==========================================================================
    2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.4.5
-   (지원금차액 마이너스 시 '개인 정산 차액' 카드로 절대값 합산 연산 수정)
+   (4인 기준 '인당 지출' 2칸 높이 대형 통합 카드 조건별 계산 공식 탑재)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -233,7 +233,7 @@ function pushUndoState() {
   if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== currentState) {
     undoStack.push(currentState);
     if (undoStack.length > 50) undoStack.shift();
-    redoStack = []; // 새로운 입력 시 Redo 스택 초기화
+    redoStack = [];
   }
 }
 
@@ -275,7 +275,6 @@ window.redo = function() {
 
 function initKeyboardShortcutListeners() {
   document.addEventListener('keydown', (e) => {
-    // Ctrl + Z 또는 Cmd + Z (Shift 조합 시 Redo)
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       if (e.shiftKey) {
         redo();
@@ -289,7 +288,6 @@ function initKeyboardShortcutListeners() {
     }
   });
 
-  // Tab 키 이동 시 스마트 포커스 처리
   const tbody = document.getElementById('settlementTbody');
   if (tbody) {
     tbody.addEventListener('keydown', (e) => {
@@ -1116,7 +1114,7 @@ function applyGlobalExchangeRate(newRate) {
   renderSettlementTable();
 }
 
-/* 📊 [핵심 정산 연산 & 렌더링]: 지원금차액 마이너스 시 '개인 정산 차액'으로 절대값 합산 연산 반영 */
+/* 📊 [핵심 정산 연산 & 렌더링]: 4인 기준 '인당 지출' 2칸 높이 대형 통합 카드 탑재 */
 function renderSettlementTable() {
   const tbody = document.getElementById('settlementTbody');
   if (!tbody) return;
@@ -1197,16 +1195,30 @@ function renderSettlementTable() {
   const rateDisplayEl = document.getElementById('displayGlobalRate');
   if (rateDisplayEl) rateDisplayEl.innerText = `1 AUD = ₩ ${globalExchangeRate.toLocaleString()}`;
 
-  // 📊 비즈니스 연산 수정:
+  // 📊 비즈니스 연산:
   // 1. 지원금 차액: 총 지원금 - 정산완료 체크된 지원금 지출액
   const grantBalance = grantAmount - settledGrantExpenseTotal;
 
   // 2. 개인 정산 차액 기본값: 개인 총 지출 - 정산완료 체크된 개인 지출액
   let personalBalance = personalTotalExpense - settledPersonalExpenseTotal;
 
-  // 💡 [수정 사항]: 지원금 차액이 마이너스(-)가 되면 그 절대값 만큼을 '개인 정산 차액'에 자동 더함!
+  // 지원금 차액이 마이너스(-)가 되면 그 절대값 만큼을 '개인 정산 차액'에 자동 더함!
   if (grantBalance < 0) {
     personalBalance += Math.abs(grantBalance);
+  }
+
+  // 💡 [4인 기준 '인당 지출' 연산 공식]:
+  // 1. 지원금 차액이 - 값인 경우 : (차액의 절대값 + 개인 총 지출) / 4
+  // 2. 지원금 차액이 + 값인 경우 : (개인 총 지출) / 4
+  let perPersonExpense = 0;
+  let subExplanation = '';
+
+  if (grantBalance < 0) {
+    perPersonExpense = Math.round((Math.abs(grantBalance) + personalTotalExpense) / 4);
+    subExplanation = `지원금 초과 ₩${Math.abs(grantBalance).toLocaleString()} 포함 (1/4 N빵)`;
+  } else {
+    perPersonExpense = Math.round(personalTotalExpense / 4);
+    subExplanation = `개인 총지출 ₩${personalTotalExpense.toLocaleString()} 기준 (1/4 N빵)`;
   }
 
   document.getElementById('summaryGrant').innerText = `₩ ${grantAmount.toLocaleString()}`;
@@ -1216,6 +1228,12 @@ function renderSettlementTable() {
   
   document.getElementById('summaryGrantBalance').innerText = `₩ ${grantBalance.toLocaleString()}`;
   document.getElementById('summaryPersonalBalance').innerText = `₩ ${personalBalance.toLocaleString()}`;
+
+  // 💡 인당 지출 카드 DOM 갱신
+  const perPersonEl = document.getElementById('summaryPerPersonExpense');
+  const perPersonSubEl = document.getElementById('summaryPerPersonSubText');
+  if (perPersonEl) perPersonEl.innerText = `₩ ${perPersonExpense.toLocaleString()}`;
+  if (perPersonSubEl) perPersonSubEl.innerText = subExplanation;
 }
 
 function parseFormattedNumber(val) {
