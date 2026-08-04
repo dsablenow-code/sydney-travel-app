@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 지원금차액/개인정산차액 2개 카드 분리 & 환율 일괄동기화 양방향 자동계산 (v=1.4.2) -->
-  <link rel="stylesheet" href="styles.css?v=1.4.2">
+  <!-- 컬럼순서 변경(체크박스 앞으로) & 지원금차액 마이너스 개인총지출 합산 (v=1.4.4) -->
+  <link rel="stylesheet" href="styles.css?v=1.4.4">
 </head>
 <body>
 
@@ -196,15 +196,25 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
           <div>
             <h2 style="font-weight: 800; font-size: 1.2rem;">2026 호주머니 0원의 배낭연수 정산서</h2>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">[팀명/팀원이름(전체기입) / 연수기간 2026.08.19 ~ 08.24] · (정렬: 구분1순위 ➔ 먼날짜2순위)</p>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">[팀명/팀원이름(전체기입) / 연수기간 2026.08.19 ~ 08.24] · (Tab키 이동 / Ctrl+Z 실행취소 지원)</p>
           </div>
           
-          <!-- 💱 전역 환율 일괄적용 툴바 -->
+          <!-- 💱 전역 환율 일괄적용 & Ctrl+Z / Ctrl+Y 실행취소 툴바 -->
           <div style="display: flex; gap: 8px; flex-wrap: wrap; width: 100%; align-items: center;">
             <div style="background: #F8F6F0; border: 1px solid #E5DEC9; padding: 6px 12px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 0.8rem; font-weight: 700; color: var(--sydney-ocean);"><i class="fa-solid fa-coins"></i> 총괄 환율:</span>
               <span style="font-size: 0.85rem; font-weight: 800;" id="displayGlobalRate">1 AUD = ₩ 900</span>
               <button class="clay-btn clay-btn-secondary" style="padding: 2px 8px; font-size: 0.72rem;" onclick="triggerEditGlobalRate()"><i class="fa-solid fa-pen"></i> 환율 일괄 변경</button>
+            </div>
+
+            <!-- ↩️ Ctrl+Z / Ctrl+Y 버튼 툴바 -->
+            <div style="display: flex; gap: 4px;">
+              <button class="clay-btn clay-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="undo()" title="실행 취소 (Ctrl + Z)">
+                <i class="fa-solid fa-rotate-left"></i> 실행취소
+              </button>
+              <button class="clay-btn clay-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="redo()" title="다시 실행 (Ctrl + Y)">
+                <i class="fa-solid fa-rotate-right"></i> 다시실행
+              </button>
             </div>
             
             <div style="display: flex; gap: 6px; flex: 1; flex-wrap: wrap;">
@@ -219,7 +229,7 @@
           </div>
         </div>
 
-        <!-- 📊 정산 요약 카드 레이아웃 (컬럼 3: 지원금 차액 & 개인 정산 차액 2개 카드 완전 분리) -->
+        <!-- 📊 정산 요약 카드 레이아웃 -->
         <div class="settlement-summary-container">
           <!-- 컬럼 1: 총 지원금 & 개인 총 지출 -->
           <div class="summary-col">
@@ -248,7 +258,7 @@
             </div>
           </div>
 
-          <!-- 컬럼 3: 지원금 차액 & 개인 정산 차액 (2개 카드 분리 연동) -->
+          <!-- 컬럼 3: 지원금 차액 & 개인 정산 차액 -->
           <div class="summary-col">
             <div style="background: var(--sydney-ocean-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
               <span style="font-size: 0.78rem; font-weight: 700; color: var(--sydney-ocean);">지원금 차액</span>
@@ -261,6 +271,7 @@
           </div>
         </div>
 
+        <!-- 📊 정산서 표 (체크박스 2개가 금액(원) 앞으로 이동 배치!) -->
         <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
           <table id="settlementTable" style="width: 100%; min-width: 920px; border-collapse: collapse; font-size: 0.83rem;">
             <thead>
@@ -270,12 +281,12 @@
                 <th style="padding: 8px; width: 100px;">결제일자</th>
                 <th style="padding: 8px; width: 120px;">업체명</th>
                 <th style="padding: 8px;">내 역 (상세)</th>
+                <th style="padding: 8px; width: 85px; text-align: center;">지원금 사용</th>
+                <th style="padding: 8px; width: 90px; text-align: center; color: var(--eucalyptus-green);">정산완료 여부</th>
                 <th style="padding: 8px; width: 105px;">금액 (원)</th>
                 <th style="padding: 8px; width: 85px;">현지 (AUD)</th>
                 <th style="padding: 8px; width: 65px;">환율</th>
                 <th style="padding: 8px; width: 85px;">결제방법</th>
-                <th style="padding: 8px; width: 85px; text-align: center;">지원금 사용</th>
-                <th style="padding: 8px; width: 90px; text-align: center; color: var(--eucalyptus-green);">정산완료 여부</th>
                 <th style="padding: 8px; border-radius: 0 8px 8px 0; width: 45px; text-align: center;">관리</th>
               </tr>
             </thead>
@@ -526,6 +537,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.4.2"></script>
+  <script src="app.js?v=1.4.4"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.4.2
-   (지원금차액/개인정산차액 2개 카드 분리 & 환율 일괄동기화 양방향 자동계산)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.4.4
+   (Tab키 이동 / Ctrl+Z 실행취소 / 체크박스 금액앞 이동 / 마이너스 차액 개인지출 합산)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -178,6 +178,10 @@ let rtdbInstance = null;
 let isRemoteUpdating = false;
 let syncBroadcastChannel = null;
 
+/* ↩️ Ctrl+Z (Undo) / Ctrl+Y (Redo) 히스토리 스택 변수 */
+let undoStack = [];
+let redoStack = [];
+
 document.addEventListener('DOMContentLoaded', () => {
   loadDataFromStorage();
   initTabNavigation();
@@ -187,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSettlementTable();
   initFirebaseCloudSync();
   initMultiWindowSyncChannel();
+  initKeyboardShortcutListeners();
 });
 
 function getItemWithFallback(masterKey, legacyPrefix) {
@@ -216,6 +221,94 @@ function sortSettlementData(dataList) {
     const dateB = b.date || '';
     return dateA.localeCompare(dateB);
   });
+}
+
+function pushUndoState() {
+  const currentState = JSON.stringify({
+    settlementData: settlementData,
+    grantAmount: grantAmount,
+    globalExchangeRate: globalExchangeRate
+  });
+
+  if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== currentState) {
+    undoStack.push(currentState);
+    if (undoStack.length > 50) undoStack.shift();
+    redoStack = []; // 새로운 입력 시 Redo 스택 초기화
+  }
+}
+
+window.undo = function() {
+  if (undoStack.length <= 1) {
+    showSyncFlashToast('↩️ 더 이상 취소할 작업이 없습니다.');
+    return;
+  }
+  const current = undoStack.pop();
+  redoStack.push(current);
+
+  const previousState = JSON.parse(undoStack[undoStack.length - 1]);
+  settlementData = previousState.settlementData;
+  grantAmount = previousState.grantAmount;
+  globalExchangeRate = previousState.globalExchangeRate;
+
+  saveDataToStorage(true);
+  renderSettlementTable();
+  showSyncFlashToast('↩️ 이전 상태로 실행 취소(Undo)되었습니다.');
+};
+
+window.redo = function() {
+  if (redoStack.length === 0) {
+    showSyncFlashToast('↪️ 더 이상 다시 실행할 작업이 없습니다.');
+    return;
+  }
+  const nextStateStr = redoStack.pop();
+  undoStack.push(nextStateStr);
+
+  const nextState = JSON.parse(nextStateStr);
+  settlementData = nextState.settlementData;
+  grantAmount = nextState.grantAmount;
+  globalExchangeRate = nextState.globalExchangeRate;
+
+  saveDataToStorage(true);
+  renderSettlementTable();
+  showSyncFlashToast('↪️ 다시 실행(Redo)되었습니다.');
+};
+
+function initKeyboardShortcutListeners() {
+  document.addEventListener('keydown', (e) => {
+    // Ctrl + Z 또는 Cmd + Z (Shift 조합 시 Redo)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      if (e.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
+      e.preventDefault();
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+      redo();
+      e.preventDefault();
+    }
+  });
+
+  // Tab 키 이동 시 스마트 포커스 처리
+  const tbody = document.getElementById('settlementTbody');
+  if (tbody) {
+    tbody.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        const inputs = Array.from(tbody.querySelectorAll('input, select'));
+        const currIdx = inputs.indexOf(document.activeElement);
+        if (currIdx !== -1) {
+          if (!e.shiftKey && currIdx === inputs.length - 1) {
+            e.preventDefault();
+            triggerAddSettlementRow();
+            setTimeout(() => {
+              const newInputs = Array.from(tbody.querySelectorAll('input, select'));
+              if (newInputs.length > 0) newInputs[newInputs.length - 11].focus();
+            }, 60);
+          }
+        }
+      }
+    });
+  }
 }
 
 function loadDataFromStorage() {
@@ -257,14 +350,20 @@ function loadDataFromStorage() {
     { id: 'm1', text: '오페라하우스 투어 11:45분까지 서큘러키 입구 집결!', time: '8/19 14:00' }
   ];
 
+  pushUndoState(); // 초기 상태 백업
+
   renderHotelAndEmergencyDisplay();
   renderSharedFiles();
   renderMemos();
   renderPhotos();
 }
 
-function saveDataToStorage() {
+function saveDataToStorage(skipUndoPush = false) {
   settlementData = sortSettlementData(settlementData);
+
+  if (!skipUndoPush) {
+    pushUndoState();
+  }
 
   localStorage.setItem(STORAGE_KEYS.ITINERARY, JSON.stringify(itineraryData));
   localStorage.setItem(STORAGE_KEYS.SETTLEMENT, JSON.stringify(settlementData));
@@ -994,7 +1093,7 @@ window.triggerAddSettlementRow = function() {
   renderSettlementTable();
 };
 
-/* 💱 [총괄 환율 일괄 변경 기능 - 모든 행 동시 갱신] */
+/* 💱 [총괄 환율 일괄 변경 기능] */
 window.triggerEditGlobalRate = function() {
   const input = prompt('모든 지출 행에 일괄 적용할 환율(1 AUD 당 원화)을 입력하세요:', globalExchangeRate);
   if (input !== null) {
@@ -1010,23 +1109,23 @@ function applyGlobalExchangeRate(newRate) {
   settlementData.forEach(row => {
     row.rate = newRate;
     if (row.aud) {
-      row.krw = Math.round(row.aud * newRate); // AUD * 환율 = 원화 자동 계산!
+      row.krw = Math.round(row.aud * newRate);
     }
   });
   saveDataToStorage();
   renderSettlementTable();
 }
 
-/* 📊 [핵심 정산 연산 & 렌더링]: 2개 분리 카드 & 양방향 자동 계산 엔진 */
+/* 📊 [핵심 정산 연산 & 렌더링]: 체크박스 컬럼이 금액 앞 이동 & 지원금차액 마이너스 시 개인총지출 합산 */
 function renderSettlementTable() {
   const tbody = document.getElementById('settlementTbody');
   if (!tbody) return;
 
   tbody.innerHTML = '';
 
-  let personalTotalExpense = 0;        // 개인 지출 전체 원화 합계 (개인 총 지출)
-  let settledGrantExpenseTotal = 0;    // 지원금 지출 중 정산완료(isSettled === true) 체크된 지출 총합
-  let settledPersonalExpenseTotal = 0; // 개인 지출 중 정산완료(isSettled === true) 체크된 지출 총합
+  let personalTotalExpense = 0;        // 순수 개인 지출 원화 합계
+  let settledGrantExpenseTotal = 0;    // 지원금 지출 중 정산완료(isSettled === true) 합계
+  let settledPersonalExpenseTotal = 0; // 개인 지출 중 정산완료(isSettled === true) 합계
 
   const sortedSettlements = sortSettlementData(settlementData);
   settlementData = sortedSettlements;
@@ -1056,6 +1155,7 @@ function renderSettlementTable() {
 
     const formattedKRW = krwVal.toLocaleString();
 
+    // 📌 헤더 순서와 동일하게 [지원금 사용] [정산완료 여부] 체크박스를 [금액(원)] 앞으로 배치!
     tr.innerHTML = `
       <td style="padding:6px; font-weight:700; text-align:center;">${idx + 1}</td>
       <td style="padding:6px;">
@@ -1066,6 +1166,15 @@ function renderSettlementTable() {
       <td style="padding:6px;"><input type="date" value="${row.date}" onchange="updateSettlementField(${row.id}, 'date', this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.8rem;"></td>
       <td style="padding:6px;"><input type="text" value="${escapeHTML(row.vendor)}" onchange="updateSettlementField(${row.id}, 'vendor', this.value)" style="width:100%; border:none; background:transparent; font-weight:600; outline:none;"></td>
       <td style="padding:6px;"><input type="text" value="${escapeHTML(row.detail)}" onchange="updateSettlementField(${row.id}, 'detail', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
+      
+      <!-- ☑️ 체크박스 2개 위치를 금액(원) 앞으로 이동! -->
+      <td style="padding:6px; text-align:center;">
+        <input type="checkbox" ${isGrant ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isGrantUsed', this.checked)" style="width:18px; height:18px; accent-color: var(--sydney-ocean); cursor:pointer;">
+      </td>
+      <td style="padding:6px; text-align:center;">
+        <input type="checkbox" ${isSettled ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isSettled', this.checked)" style="width:18px; height:18px; accent-color: var(--eucalyptus-green); cursor:pointer;">
+      </td>
+
       <td style="padding:6px;">
         <input type="text" value="${formattedKRW}" onchange="updateSettlementField(${row.id}, 'krw', this.value)" style="width:100%; border:none; background:transparent; font-weight:800; color:var(--uluru-red); outline:none;" placeholder="0">
       </td>
@@ -1076,12 +1185,7 @@ function renderSettlementTable() {
         <input type="number" value="${row.rate || globalExchangeRate}" onchange="updateSettlementField(${row.id}, 'rate', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; outline:none;" placeholder="900">
       </td>
       <td style="padding:6px;"><input type="text" value="${escapeHTML(row.method)}" onchange="updateSettlementField(${row.id}, 'method', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
-      <td style="padding:6px; text-align:center;">
-        <input type="checkbox" ${isGrant ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isGrantUsed', this.checked)" style="width:18px; height:18px; accent-color: var(--sydney-ocean); cursor:pointer;">
-      </td>
-      <td style="padding:6px; text-align:center;">
-        <input type="checkbox" ${isSettled ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isSettled', this.checked)" style="width:18px; height:18px; accent-color: var(--eucalyptus-green); cursor:pointer;">
-      </td>
+      
       <td style="padding:6px; text-align:center;">
         <button class="clay-btn clay-btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deleteSettlementRow(${row.id})">
           <i class="fa-solid fa-trash"></i>
@@ -1095,14 +1199,19 @@ function renderSettlementTable() {
   const rateDisplayEl = document.getElementById('displayGlobalRate');
   if (rateDisplayEl) rateDisplayEl.innerText = `1 AUD = ₩ ${globalExchangeRate.toLocaleString()}`;
 
-  // 📊 3컬럼 정밀 카드 연산 반영:
-  // 1. 지원금 차액: 총 지원금 - 정산완료 체크된 지원금 지출액
-  // 2. 개인 정산 차액: 개인 총 지출 - 정산완료 체크된 개인 지출액 (또는 개인 부담 잔액)
-  const grantBalance = grantAmount - settledGrantExpenseTotal;
-  const personalBalance = personalTotalExpense - settledPersonalExpenseTotal;
+  // 📊 지원금 차액 및 마이너스(-) 발생 시 개인 총 지출 자동 합산 비즈니스 로직
+  const grantBalance = grantAmount - settledGrantExpenseTotal; // 지원금 차액
+
+  let adjustedPersonalTotalExpense = personalTotalExpense;
+  if (grantBalance < 0) {
+    // 💡 지원금 차액이 마이너스(-)이면 그 절대값만큼 개인 총 지출에 자동 합산!
+    adjustedPersonalTotalExpense += Math.abs(grantBalance);
+  }
+
+  const personalBalance = adjustedPersonalTotalExpense - settledPersonalExpenseTotal;
 
   document.getElementById('summaryGrant').innerText = `₩ ${grantAmount.toLocaleString()}`;
-  document.getElementById('summaryPersonalTotalExpense').innerText = `₩ ${personalTotalExpense.toLocaleString()}`;
+  document.getElementById('summaryPersonalTotalExpense').innerText = `₩ ${adjustedPersonalTotalExpense.toLocaleString()}`;
   document.getElementById('summaryGrantExpense').innerText = `₩ ${settledGrantExpenseTotal.toLocaleString()}`;
   document.getElementById('summaryPersonalExpense').innerText = `₩ ${settledPersonalExpenseTotal.toLocaleString()}`;
   
@@ -1122,19 +1231,16 @@ window.updateSettlementField = function(id, field, value) {
   const row = settlementData.find(s => s.id === id);
   if (row) {
     if (field === 'rate') {
-      // 💱 환율 하나를 바꾸면 표 전체 행에 환율 일괄 동시 반영!
       const newRate = parseFloat(value) || globalExchangeRate || 900;
       applyGlobalExchangeRate(newRate);
       return;
     } else if (field === 'krw') {
-      // 🔄 원화(KRW) 입력 ➔ AUD 자동 계산 (원 / 환율)
       row.krw = parseFormattedNumber(value);
       const currentRate = parseFloat(row.rate) || globalExchangeRate || 1;
       if (currentRate > 0) {
         row.aud = Math.round((row.krw / currentRate) * 100) / 100;
       }
     } else if (field === 'aud') {
-      // 🔄 현지(AUD) 입력 ➔ 원화(KRW) 자동 계산 (AUD * 환율)
       row.aud = parseFloat(value) || 0;
       const currentRate = parseFloat(row.rate) || globalExchangeRate || 1;
       row.krw = Math.round(row.aud * currentRate);
@@ -1171,15 +1277,16 @@ window.deleteSettlementRow = function(id) {
 
 window.exportGrantOnlyCSV = function() {
   const BOM = "\uFEFF";
-  let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법,정산완료 여부\n";
+  let csvContent = "연번,구분,결제일자,업체명,내역(상세),지원금 사용,정산완료 여부,금액(원),현지(AUD),환율,결제방법\n";
   const grantRows = sortSettlementData(settlementData.filter(r => r.isGrantUsed));
   if (grantRows.length === 0) {
     alert('지원금 사용이 체크된 지출 항목이 없습니다.');
     return;
   }
   grantRows.forEach((r, i) => {
+    const isUsedStr = r.isGrantUsed ? "사용함(O)" : "미사용(X)";
     const settledStr = r.isSettled ? "정산완료(O)" : "미정산(X)";
-    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}",${r.krw},${r.aud},${r.rate},"${r.method}","${settledStr}"\n`;
+    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}","${isUsedStr}","${settledStr}",${r.krw},${r.aud},${r.rate},"${r.method}"\n`;
   });
   const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -1193,12 +1300,12 @@ window.exportGrantOnlyCSV = function() {
 
 window.exportFullCSV = function() {
   const BOM = "\uFEFF";
-  let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법,지원금 사용여부,정산완료 여부\n";
+  let csvContent = "연번,구분,결제일자,업체명,내역(상세),지원금 사용여부,정산완료 여부,금액(원),현지(AUD),환율,결제방법\n";
   const sortedRows = sortSettlementData(settlementData);
   sortedRows.forEach((r, i) => {
     const isUsedStr = r.isGrantUsed ? "사용함(O)" : "미사용(X)";
     const settledStr = r.isSettled ? "정산완료(O)" : "미정산(X)";
-    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}",${r.krw},${r.aud},${r.rate},"${r.method}","${isUsedStr}","${settledStr}"\n`;
+    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}","${isUsedStr}","${settledStr}",${r.krw},${r.aud},${r.rate},"${r.method}"\n`;
   });
   const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -1354,7 +1461,7 @@ function renderPhotos() {
           <i class="fa-solid fa-download"></i> 다운
         </button>
       </div>
-      <div style="display:flex; justify-content:space-around; background:#F8F6F0; padding:4px; border-radius:8px; gap:2px;">
+      <div style="display:flex; justify-around; background:#F8F6F0; padding:4px; border-radius:8px; gap:2px;">
         <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'heart')">❤️ ${p.heart || 0}</button>
         <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'thumb')">👍 ${p.thumb || 0}</button>
         <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'wow')">😮 ${p.wow || 0}</button>
