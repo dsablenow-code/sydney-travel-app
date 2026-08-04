@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.4.4
-   (Tab키 이동 / Ctrl+Z 실행취소 / 체크박스 금액앞 이동 / 마이너스 차액 개인지출 합산)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.4.5
+   (지원금차액 마이너스 시 '개인 정산 차액' 카드로 절대값 합산 연산 수정)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -350,7 +350,7 @@ function loadDataFromStorage() {
     { id: 'm1', text: '오페라하우스 투어 11:45분까지 서큘러키 입구 집결!', time: '8/19 14:00' }
   ];
 
-  pushUndoState(); // 초기 상태 백업
+  pushUndoState();
 
   renderHotelAndEmergencyDisplay();
   renderSharedFiles();
@@ -1116,14 +1116,14 @@ function applyGlobalExchangeRate(newRate) {
   renderSettlementTable();
 }
 
-/* 📊 [핵심 정산 연산 & 렌더링]: 체크박스 컬럼이 금액 앞 이동 & 지원금차액 마이너스 시 개인총지출 합산 */
+/* 📊 [핵심 정산 연산 & 렌더링]: 지원금차액 마이너스 시 '개인 정산 차액'으로 절대값 합산 연산 반영 */
 function renderSettlementTable() {
   const tbody = document.getElementById('settlementTbody');
   if (!tbody) return;
 
   tbody.innerHTML = '';
 
-  let personalTotalExpense = 0;        // 순수 개인 지출 원화 합계
+  let personalTotalExpense = 0;        // 순수 개인 부담 지출 원화 합계
   let settledGrantExpenseTotal = 0;    // 지원금 지출 중 정산완료(isSettled === true) 합계
   let settledPersonalExpenseTotal = 0; // 개인 지출 중 정산완료(isSettled === true) 합계
 
@@ -1155,7 +1155,6 @@ function renderSettlementTable() {
 
     const formattedKRW = krwVal.toLocaleString();
 
-    // 📌 헤더 순서와 동일하게 [지원금 사용] [정산완료 여부] 체크박스를 [금액(원)] 앞으로 배치!
     tr.innerHTML = `
       <td style="padding:6px; font-weight:700; text-align:center;">${idx + 1}</td>
       <td style="padding:6px;">
@@ -1167,7 +1166,6 @@ function renderSettlementTable() {
       <td style="padding:6px;"><input type="text" value="${escapeHTML(row.vendor)}" onchange="updateSettlementField(${row.id}, 'vendor', this.value)" style="width:100%; border:none; background:transparent; font-weight:600; outline:none;"></td>
       <td style="padding:6px;"><input type="text" value="${escapeHTML(row.detail)}" onchange="updateSettlementField(${row.id}, 'detail', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
       
-      <!-- ☑️ 체크박스 2개 위치를 금액(원) 앞으로 이동! -->
       <td style="padding:6px; text-align:center;">
         <input type="checkbox" ${isGrant ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isGrantUsed', this.checked)" style="width:18px; height:18px; accent-color: var(--sydney-ocean); cursor:pointer;">
       </td>
@@ -1199,19 +1197,20 @@ function renderSettlementTable() {
   const rateDisplayEl = document.getElementById('displayGlobalRate');
   if (rateDisplayEl) rateDisplayEl.innerText = `1 AUD = ₩ ${globalExchangeRate.toLocaleString()}`;
 
-  // 📊 지원금 차액 및 마이너스(-) 발생 시 개인 총 지출 자동 합산 비즈니스 로직
-  const grantBalance = grantAmount - settledGrantExpenseTotal; // 지원금 차액
+  // 📊 비즈니스 연산 수정:
+  // 1. 지원금 차액: 총 지원금 - 정산완료 체크된 지원금 지출액
+  const grantBalance = grantAmount - settledGrantExpenseTotal;
 
-  let adjustedPersonalTotalExpense = personalTotalExpense;
+  // 2. 개인 정산 차액 기본값: 개인 총 지출 - 정산완료 체크된 개인 지출액
+  let personalBalance = personalTotalExpense - settledPersonalExpenseTotal;
+
+  // 💡 [수정 사항]: 지원금 차액이 마이너스(-)가 되면 그 절대값 만큼을 '개인 정산 차액'에 자동 더함!
   if (grantBalance < 0) {
-    // 💡 지원금 차액이 마이너스(-)이면 그 절대값만큼 개인 총 지출에 자동 합산!
-    adjustedPersonalTotalExpense += Math.abs(grantBalance);
+    personalBalance += Math.abs(grantBalance);
   }
 
-  const personalBalance = adjustedPersonalTotalExpense - settledPersonalExpenseTotal;
-
   document.getElementById('summaryGrant').innerText = `₩ ${grantAmount.toLocaleString()}`;
-  document.getElementById('summaryPersonalTotalExpense').innerText = `₩ ${adjustedPersonalTotalExpense.toLocaleString()}`;
+  document.getElementById('summaryPersonalTotalExpense').innerText = `₩ ${personalTotalExpense.toLocaleString()}`;
   document.getElementById('summaryGrantExpense').innerText = `₩ ${settledGrantExpenseTotal.toLocaleString()}`;
   document.getElementById('summaryPersonalExpense').innerText = `₩ ${settledPersonalExpenseTotal.toLocaleString()}`;
   
