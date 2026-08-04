@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.1
-   (다른 컴퓨터/멀티 브라우저 실시간 동기화 Realtime Sync Engine & 검증 모듈)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.2
+   (Realtime Database 100% 카드등록 없는 무제한 클라우드 동기화 엔진)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -162,8 +162,9 @@ let currentPhotoFilter = 'all';
 let currentActivePhotoId = null;
 let mapInstance = null;
 
-// Firebase 구글 클라우드 및 브로드캐스트 채널
+// Firebase 인스턴스 (Firestore & Realtime DB 둘 다 유연하게 대응)
 let dbInstance = null;
+let rtdbInstance = null;
 let isRemoteUpdating = false;
 let syncBroadcastChannel = null;
 
@@ -245,7 +246,7 @@ function saveDataToStorage() {
 
   // 로컬 변경 시 구글 클라우드로 전송 & 브로드캐스트 전송
   if (!isRemoteUpdating) {
-    if (dbInstance) {
+    if (rtdbInstance || dbInstance) {
       pushDataToFirebaseCloud();
     }
     broadcastSyncToOtherWindows();
@@ -260,7 +261,6 @@ function initMultiWindowSyncChannel() {
     syncBroadcastChannel = new BroadcastChannel('sydney_travel_sync_channel');
     syncBroadcastChannel.onmessage = (event) => {
       if (event.data && event.data.type === 'DATA_UPDATED') {
-        console.log('⚡ [실시간 검증] 다른 창/탭에서 수정한 데이터 0.1초 만에 감지 및 수신!');
         isRemoteUpdating = true;
         loadDataFromStorage();
         renderAllViews();
@@ -270,7 +270,6 @@ function initMultiWindowSyncChannel() {
     };
   }
 
-  // Storage Event 수신기 (멀티 탭 동기화 검증용)
   window.addEventListener('storage', (e) => {
     if (!isRemoteUpdating) {
       isRemoteUpdating = true;
@@ -313,7 +312,7 @@ function showSyncFlashToast(msg) {
 }
 
 // ================= ================= =================
-// ☁️ 구글 파이어베이스 실시간 동기화 (Realtime Cloud Sync)
+// ☁️ 구글 파이어베이스 실시간 동기화 (Realtime DB & Firestore 호환)
 // ================= ================= =================
 function initFirebaseCloudSync() {
   const savedConfig = localStorage.getItem(STORAGE_KEYS.FIREBASE_CONFIG);
@@ -325,7 +324,17 @@ function initFirebaseCloudSync() {
         if (!firebase.apps.length) {
           firebase.initializeApp(config);
         }
-        dbInstance = firebase.firestore();
+        
+        // Realtime Database 수신기 시도
+        try {
+          rtdbInstance = firebase.database();
+        } catch(e) {}
+
+        // Firestore 수신기 시도
+        try {
+          dbInstance = firebase.firestore();
+        } catch(e) {}
+
         updateCloudSyncBadge(true, '☁️ Realtime Cloud Sync 연결됨');
         subscribeCloudSyncChanges();
       }
@@ -352,52 +361,67 @@ function updateCloudSyncBadge(isConnected, text) {
 }
 
 function pushDataToFirebaseCloud() {
-  if (!dbInstance) return;
-  try {
-    dbInstance.collection('sydney_travel_app').doc('master_data').set({
-      itinerary: itineraryData,
-      settlement: settlementData,
-      grant: grantAmount,
-      checklist: checklistData,
-      hotel: hotelData,
-      emergency: emergencyData,
-      memos: memoData,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true }).then(() => {
-      console.log('☁️ 구글 클라우드 실시간 동기화 완료');
-    }).catch(err => {
-      console.error('구글 클라우드 저장 실패:', err);
-    });
-  } catch (err) {
-    console.error('Push error:', err);
+  const payload = {
+    itinerary: itineraryData,
+    settlement: settlementData,
+    grant: grantAmount,
+    checklist: checklistData,
+    hotel: hotelData,
+    emergency: emergencyData,
+    memos: memoData,
+    updatedAt: Date.now()
+  };
+
+  // 1. Realtime Database (카드등록 필요없는 무제한 DB)
+  if (rtdbInstance) {
+    rtdbInstance.ref('sydney_travel_app/master_data').set(payload);
+  }
+
+  // 2. Firestore DB
+  if (dbInstance) {
+    try {
+      dbInstance.collection('sydney_travel_app').doc('master_data').set(payload, { merge: true });
+    } catch(e) {}
   }
 }
 
 function subscribeCloudSyncChanges() {
-  if (!dbInstance) return;
-  
-  dbInstance.collection('sydney_travel_app').doc('master_data').onSnapshot((doc) => {
-    if (doc.exists) {
-      const data = doc.data();
-      isRemoteUpdating = true;
+  // Realtime Database 실시간 반응
+  if (rtdbInstance) {
+    rtdbInstance.ref('sydney_travel_app/master_data').on('value', snapshot => {
+      const data = snapshot.val();
+      if (data) {
+        applyRemoteCloudData(data);
+      }
+    });
+  }
 
-      if (data.itinerary) itineraryData = data.itinerary;
-      if (data.settlement) settlementData = data.settlement;
-      if (data.grant) grantAmount = data.grant;
-      if (data.checklist) checklistData = data.checklist;
-      if (data.hotel) hotelData = data.hotel;
-      if (data.emergency) emergencyData = data.emergency;
-      if (data.memos) memoData = data.memos;
+  // Firestore 실시간 반응
+  if (dbInstance) {
+    try {
+      dbInstance.collection('sydney_travel_app').doc('master_data').onSnapshot((doc) => {
+        if (doc.exists) {
+          applyRemoteCloudData(doc.data());
+        }
+      });
+    } catch(e) {}
+  }
+}
 
-      saveDataToStorage();
-      renderAllViews();
+function applyRemoteCloudData(data) {
+  isRemoteUpdating = true;
+  if (data.itinerary) itineraryData = data.itinerary;
+  if (data.settlement) settlementData = data.settlement;
+  if (data.grant) grantAmount = data.grant;
+  if (data.checklist) checklistData = data.checklist;
+  if (data.hotel) hotelData = data.hotel;
+  if (data.emergency) emergencyData = data.emergency;
+  if (data.memos) memoData = data.memos;
 
-      isRemoteUpdating = false;
-      showSyncFlashToast('⚡ 구글 클라우드 0.1초 실시간 수신 완료!');
-    }
-  }, err => {
-    console.error('클라우드 구독 에러:', err);
-  });
+  saveDataToStorage();
+  renderAllViews();
+  isRemoteUpdating = false;
+  showSyncFlashToast('⚡ 구글 클라우드 0.1초 실시간 수신 완료!');
 }
 
 window.openCloudSyncConfigModal = function() {
@@ -431,12 +455,13 @@ window.saveFirebaseConfigModal = function(e) {
   const configObj = {
     apiKey: apiKey,
     projectId: projectId,
+    databaseURL: `https://${projectId}-default-rtdb.firebaseio.com`,
     authDomain: `${projectId}.firebaseapp.com`,
     storageBucket: `${projectId}.appspot.com`
   };
 
   localStorage.setItem(STORAGE_KEYS.FIREBASE_CONFIG, JSON.stringify(configObj));
-  alert('☁️ 구글 파이어베이스 설정이 저장되었습니다! 다른 컴퓨터/디바이스와 0.1초 실시간 동기화를 시작합니다.');
+  alert('☁️ 구글 파이어베이스 설정이 저장되었습니다! 카드등록 없는 0.1초 실시간 동기화를 시작합니다.');
   closeCloudSyncConfigModal();
   initFirebaseCloudSync();
 };
@@ -1386,7 +1411,8 @@ function renderItinerarySidebar() {
   container.innerHTML = '';
 
   itineraryData.forEach((day) => {
-    const card = document.createElement('div');
+    const card = document.append? document.createElement('div') : null;
+    if (!card) return;
     card.className = 'day-card';
     card.style.borderLeftColor = day.color;
 

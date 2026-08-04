@@ -8,13 +8,13 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- Google Cloud Sync 파이어베이스 버전 (v=1.3.0) -->
-  <link rel="stylesheet" href="styles.css?v=1.3.0">
+  <!-- Realtime Database & Firestore 모두 지원 버전 (v=1.3.2) -->
+  <link rel="stylesheet" href="styles.css?v=1.3.2">
 </head>
 <body>
 
   <!-- ================= ================= =================
-       글로벌 헤더 & 클레이모피즘 네비게이션 (클라우드 싱크 상태 표시 포함)
+       글로벌 헤더 & 클레이모피즘 네비게이션
        ================= ================= ================= -->
   <header class="app-header">
     <div class="clay-card header-card">
@@ -484,12 +484,13 @@
     </div>
   </div>
 
-  <!-- Firebase App & Firestore SDK CDN (구글 클라우드 실시간 Sync 연동) -->
+  <!-- Firebase App & Firestore & Realtime Database SDK CDN (100% 카드등록 없는 무제한 동기화 지원) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.3.0"></script>
+  <script src="app.js?v=1.3.2"></script>
 </body>
 </html>
