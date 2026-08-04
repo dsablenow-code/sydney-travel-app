@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 개인 총 지출 & 정산완료 연동 총지출액(개인) 카드 적용 (v=1.4.0) -->
-  <link rel="stylesheet" href="styles.css?v=1.4.0">
+  <!-- 전역 환율 총괄 적용 & 원/AUD 양방향 자동 계산 버전 (v=1.4.1) -->
+  <link rel="stylesheet" href="styles.css?v=1.4.1">
 </head>
 <body>
 
@@ -198,18 +198,28 @@
             <h2 style="font-weight: 800; font-size: 1.2rem;">2026 호주머니 0원의 배낭연수 정산서</h2>
             <p style="font-size: 0.8rem; color: var(--text-secondary);">[팀명/팀원이름(전체기입) / 연수기간 2026.08.19 ~ 08.24] · (정렬: 구분1순위 ➔ 먼날짜2순위)</p>
           </div>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap; width: 100%;">
-            <button class="clay-btn clay-btn-secondary" style="flex:1;" onclick="triggerAddSettlementRow()"><i class="fa-solid fa-plus"></i> 행 추가</button>
-            <button class="clay-btn clay-btn-secondary" style="flex:1; border-color: var(--sydney-ocean); color: var(--sydney-ocean);" onclick="exportGrantOnlyCSV()">
-              <i class="fa-solid fa-file-circle-check"></i> 지원금 엑셀
-            </button>
-            <button class="clay-btn clay-btn-primary" style="flex:1;" onclick="exportFullCSV()">
-              <i class="fa-solid fa-file-excel"></i> 전체 엑셀
-            </button>
+          
+          <!-- 💱 전역 환율 설정 및 컨트롤 버튼 툴바 -->
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; width: 100%; align-items: center;">
+            <div style="background: #F8F6F0; border: 1px solid #E5DEC9; padding: 6px 12px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--sydney-ocean);"><i class="fa-solid fa-coins"></i> 총괄 환율:</span>
+              <span style="font-size: 0.85rem; font-weight: 800;" id="displayGlobalRate">1 AUD = ₩ 900</span>
+              <button class="clay-btn clay-btn-secondary" style="padding: 2px 8px; font-size: 0.72rem;" onclick="triggerEditGlobalRate()"><i class="fa-solid fa-pen"></i> 총괄 환율 수정</button>
+            </div>
+            
+            <div style="display: flex; gap: 6px; flex: 1; flex-wrap: wrap;">
+              <button class="clay-btn clay-btn-secondary" style="flex:1;" onclick="triggerAddSettlementRow()"><i class="fa-solid fa-plus"></i> 행 추가</button>
+              <button class="clay-btn clay-btn-secondary" style="flex:1; border-color: var(--sydney-ocean); color: var(--sydney-ocean);" onclick="exportGrantOnlyCSV()">
+                <i class="fa-solid fa-file-circle-check"></i> 지원금 엑셀
+              </button>
+              <button class="clay-btn clay-btn-primary" style="flex:1;" onclick="exportFullCSV()">
+                <i class="fa-solid fa-file-excel"></i> 전체 엑셀
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- 📊 정산 요약 카드 레이아웃 (개인 총 지출 & 정산완료 체크 연동) -->
+        <!-- 📊 정산 요약 카드 레이아웃 -->
         <div class="settlement-summary-container">
           <!-- 컬럼 1: 총 지원금 & 개인 총 지출 -->
           <div class="summary-col">
@@ -226,22 +236,19 @@
             </div>
           </div>
 
-          <!-- 컬럼 2: 총 지출액(지원금) & 총 지출액(개인) [정산완료 체크 연동] -->
+          <!-- 컬럼 2: 총 지출액(지원금) & 총 지출액(개인) [정산완료 여부 반영] -->
           <div class="summary-col">
             <div style="background: var(--uluru-red-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
               <span style="font-size: 0.78rem; font-weight: 700; color: var(--uluru-red);">총 지출액(지원금)</span>
               <div id="summaryGrantExpense" style="font-size: 1.15rem; font-weight: 800; color: var(--uluru-red); margin-top: 4px;">₩ 0</div>
             </div>
             <div style="background: #EDE7F6; padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 0.78rem; font-weight: 700; color: #5E35B1;">총 지출액(개인)</span>
-                <span style="font-size: 0.68rem; color: #5E35B1; background: #FFF; padding: 1px 5px; border-radius: 8px;">정산완료 연동</span>
-              </div>
+              <span style="font-size: 0.78rem; font-weight: 700; color: #5E35B1;">총 지출액(개인)</span>
               <div id="summaryPersonalExpense" style="font-size: 1.15rem; font-weight: 800; color: #5E35B1; margin-top: 4px;">₩ 0</div>
             </div>
           </div>
 
-          <!-- 컬럼 3: 최종 정산 차액 (괄호안은 지원금 차액) -->
+          <!-- 컬럼 3: 최종 정산 차액 (정산완료 체크 100% 실시간 반영) -->
           <div class="summary-col summary-col-main" style="background: var(--sydney-ocean-soft); padding: 16px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed); display: flex; flex-direction: column; justify-content: center;">
             <span style="font-size: 0.85rem; font-weight: 800; color: var(--sydney-ocean);">최종 정산 차액</span>
             <div id="summaryBalanceMain" style="font-size: 1.25rem; font-weight: 800; color: var(--sydney-ocean); margin-top: 6px;">₩ 0</div>
@@ -259,7 +266,7 @@
                 <th style="padding: 8px; width: 120px;">업체명</th>
                 <th style="padding: 8px;">내 역 (상세)</th>
                 <th style="padding: 8px; width: 105px;">금액 (원)</th>
-                <th style="padding: 8px; width: 75px;">현지 (AUD)</th>
+                <th style="padding: 8px; width: 85px;">현지 (AUD)</th>
                 <th style="padding: 8px; width: 65px;">환율</th>
                 <th style="padding: 8px; width: 85px;">결제방법</th>
                 <th style="padding: 8px; width: 85px; text-align: center;">지원금 사용</th>
@@ -514,6 +521,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.4.0"></script>
+  <script src="app.js?v=1.4.1"></script>
 </body>
 </html>

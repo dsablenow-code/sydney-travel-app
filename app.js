@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.4.0
-   (개인 총 지출 & 정산완료 여부 체크 연동 총지출액(개인) 시스템 완벽 탑재)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.4.1
+   (총괄 환율 일괄 적용 & 원/AUD 양방향 자동 계산 & 정산완료 100% 반영 차액)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -154,12 +154,14 @@ const STORAGE_KEYS = {
   FILES: 'sydney_master_files_v1',
   PHOTOS: 'sydney_master_photos_v1',
   MEMOS: 'sydney_master_memos_v1',
+  EXCHANGE_RATE: 'sydney_master_exchange_rate_v1',
   FIREBASE_CONFIG: 'sydney_master_fb_config_v1'
 };
 
 let itineraryData = [];
 let settlementData = [];
 let grantAmount = 2500000;
+let globalExchangeRate = 900; // 전역 환율 기본값
 let checklistData = {};
 let hotelData = {};
 let emergencyData = {};
@@ -220,11 +222,15 @@ function loadDataFromStorage() {
   const savedItinerary = getItemWithFallback(STORAGE_KEYS.ITINERARY, 'sydney_itinerary');
   itineraryData = savedItinerary ? JSON.parse(savedItinerary) : [...defaultItinerary];
 
+  const savedRate = localStorage.getItem(STORAGE_KEYS.EXCHANGE_RATE);
+  globalExchangeRate = savedRate ? parseFloat(savedRate) : 900;
+
   const savedSettlement = getItemWithFallback(STORAGE_KEYS.SETTLEMENT, 'sydney_settlement');
   const rawSettlement = savedSettlement ? JSON.parse(savedSettlement) : defaultSettlements;
   
   settlementData = sortSettlementData(rawSettlement.map(r => ({
     ...r,
+    rate: r.rate || globalExchangeRate,
     isSettled: typeof r.isSettled === 'boolean' ? r.isSettled : Boolean(r.isGrantUsed)
   })));
 
@@ -263,6 +269,7 @@ function saveDataToStorage() {
   localStorage.setItem(STORAGE_KEYS.ITINERARY, JSON.stringify(itineraryData));
   localStorage.setItem(STORAGE_KEYS.SETTLEMENT, JSON.stringify(settlementData));
   localStorage.setItem(STORAGE_KEYS.GRANT, grantAmount.toString());
+  localStorage.setItem(STORAGE_KEYS.EXCHANGE_RATE, globalExchangeRate.toString());
   localStorage.setItem(STORAGE_KEYS.CHECKLIST, JSON.stringify(checklistData));
   localStorage.setItem(STORAGE_KEYS.HOTEL, JSON.stringify(hotelData));
   localStorage.setItem(STORAGE_KEYS.EMERGENCY, JSON.stringify(emergencyData));
@@ -383,6 +390,7 @@ function pushDataToFirebaseCloud() {
     itinerary: itineraryData,
     settlement: sortedSettlements,
     grant: grantAmount,
+    exchangeRate: globalExchangeRate,
     checklist: checklistData,
     hotel: hotelData,
     emergency: emergencyData,
@@ -425,9 +433,11 @@ function subscribeCloudSyncChanges() {
 function applyRemoteCloudData(data) {
   isRemoteUpdating = true;
   if (data.itinerary) itineraryData = data.itinerary;
+  if (data.exchangeRate) globalExchangeRate = data.exchangeRate;
   if (data.settlement) {
     settlementData = sortSettlementData(data.settlement.map(r => ({
       ...r,
+      rate: r.rate || globalExchangeRate,
       isSettled: typeof r.isSettled === 'boolean' ? r.isSettled : Boolean(r.isGrantUsed)
     })));
   }
@@ -974,7 +984,7 @@ window.triggerAddSettlementRow = function() {
     detail: '시드니 현지 식사',
     krw: 45000,
     aud: 50,
-    rate: 900,
+    rate: globalExchangeRate,
     method: '트래블월렛',
     isGrantUsed: true,
     isSettled: true
@@ -984,16 +994,36 @@ window.triggerAddSettlementRow = function() {
   renderSettlementTable();
 };
 
-/* 📊 [핵심 정산 연산 & 렌더링]: 개인 총 지출 & 정산완료 여부 체크 연동 총지출액(개인) */
+/* 💱 [총괄 환율 일괄 변경 기능] */
+window.triggerEditGlobalRate = function() {
+  const input = prompt('모든 행에 일괄 적용할 총괄 환율(1 AUD 당 원화)을 입력하세요:', globalExchangeRate);
+  if (input !== null) {
+    const newRate = parseFloat(input);
+    if (!isNaN(newRate) && newRate > 0) {
+      globalExchangeRate = newRate;
+      // 표의 모든 지출 행 환율 및 원화 금액 총괄 재계산!
+      settlementData.forEach(row => {
+        row.rate = newRate;
+        if (row.aud) {
+          row.krw = Math.round(row.aud * newRate);
+        }
+      });
+      saveDataToStorage();
+      renderSettlementTable();
+    }
+  }
+};
+
+/* 📊 [핵심 정산 연산 & 렌더링]: 정산완료 100% 반영 연산 & 원화/AUD 양방향 연동 */
 function renderSettlementTable() {
   const tbody = document.getElementById('settlementTbody');
   if (!tbody) return;
 
   tbody.innerHTML = '';
 
-  let grantExpenseTotal = 0;           // 지원금 사용 지출 총합 (총 지출액 지원금)
-  let personalTotalExpense = 0;        // 개인 지출 전체 총합 (개인 총 지출)
-  let settledPersonalExpenseTotal = 0; // 개인 지출 중 정산완료(isSettled === true) 체크된 지출 총합 (총 지출액 개인 - 정산완료 연동!)
+  let personalTotalExpense = 0;        // 개인 지출 항목 전체 원화 합계 (개인 총 지출)
+  let settledGrantExpenseTotal = 0;    // 지원금 지출 중 정산완료(isSettled === true) 체크된 지출 총합 (총 지출액 지원금)
+  let settledPersonalExpenseTotal = 0; // 개인 지출 중 정산완료(isSettled === true) 체크된 지출 총합 (총 지출액 개인)
 
   const sortedSettlements = sortSettlementData(settlementData);
   settlementData = sortedSettlements;
@@ -1004,7 +1034,9 @@ function renderSettlementTable() {
     const isSettled = typeof row.isSettled === 'boolean' ? row.isSettled : isGrant;
 
     if (isGrant) {
-      grantExpenseTotal += krwVal;
+      if (isSettled) {
+        settledGrantExpenseTotal += krwVal; // 정산완료 체크된 지원금 지출만 합산!
+      }
     } else {
       personalTotalExpense += krwVal; // 개인 지출 전체 합계
       if (isSettled) {
@@ -1032,10 +1064,14 @@ function renderSettlementTable() {
       <td style="padding:6px;"><input type="text" value="${escapeHTML(row.vendor)}" onchange="updateSettlementField(${row.id}, 'vendor', this.value)" style="width:100%; border:none; background:transparent; font-weight:600; outline:none;"></td>
       <td style="padding:6px;"><input type="text" value="${escapeHTML(row.detail)}" onchange="updateSettlementField(${row.id}, 'detail', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
       <td style="padding:6px;">
-        <input type="text" value="${formattedKRW}" onchange="updateSettlementField(${row.id}, 'krw', this.value)" style="width:100%; border:none; background:transparent; font-weight:800; color:var(--uluru-red); outline:none;">
+        <input type="text" value="${formattedKRW}" onchange="updateSettlementField(${row.id}, 'krw', this.value)" style="width:100%; border:none; background:transparent; font-weight:800; color:var(--uluru-red); outline:none;" placeholder="0">
       </td>
-      <td style="padding:6px;"><input type="number" value="${row.aud}" onchange="updateSettlementField(${row.id}, 'aud', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
-      <td style="padding:6px;"><input type="number" value="${row.rate}" onchange="updateSettlementField(${row.id}, 'rate', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
+      <td style="padding:6px;">
+        <input type="number" value="${row.aud}" onchange="updateSettlementField(${row.id}, 'aud', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; color:var(--sydney-ocean); outline:none;" placeholder="0">
+      </td>
+      <td style="padding:6px;">
+        <input type="number" value="${row.rate}" onchange="updateSettlementField(${row.id}, 'rate', this.value)" style="width:100%; border:none; background:transparent; outline:none;" placeholder="900">
+      </td>
       <td style="padding:6px;"><input type="text" value="${escapeHTML(row.method)}" onchange="updateSettlementField(${row.id}, 'method', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
       <td style="padding:6px; text-align:center;">
         <input type="checkbox" ${isGrant ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isGrantUsed', this.checked)" style="width:18px; height:18px; accent-color: var(--sydney-ocean); cursor:pointer;">
@@ -1052,16 +1088,19 @@ function renderSettlementTable() {
     tbody.appendChild(tr);
   });
 
-  // 📊 카드 연산 반영:
-  // 1. 개인 총 지출: 개인 지출 항목 전체 합계 (personalTotalExpense)
-  // 2. 총 지출액(개인): 정산완료 체크에 따라 변동되는 개인 지출 합계 (settledPersonalExpenseTotal)
-  const finalTotalExpense = grantExpenseTotal + personalTotalExpense;
-  const finalTotalBalance = grantAmount - finalTotalExpense;
-  const grantBalance = grantAmount - grantExpenseTotal;
+  // 📊 상단 총괄 환율 텍스트 갱신
+  const rateDisplayEl = document.getElementById('displayGlobalRate');
+  if (rateDisplayEl) rateDisplayEl.innerText = `1 AUD = ₩ ${globalExchangeRate.toLocaleString()}`;
+
+  // 📊 카드 정밀 연산 반영:
+  // 정산완료 체크박스가 켜진 항목들만 집계되어 최종 정산 차액에 100% 실시간 동적 반영!
+  const settledTotalExpense = settledGrantExpenseTotal + settledPersonalExpenseTotal;
+  const finalTotalBalance = grantAmount - settledTotalExpense; // 최종 정산 차액 (정산완료 체크 실시간 연동!)
+  const grantBalance = grantAmount - settledGrantExpenseTotal;  // 지원금 차액
 
   document.getElementById('summaryGrant').innerText = `₩ ${grantAmount.toLocaleString()}`;
   document.getElementById('summaryPersonalTotalExpense').innerText = `₩ ${personalTotalExpense.toLocaleString()}`;
-  document.getElementById('summaryGrantExpense').innerText = `₩ ${grantExpenseTotal.toLocaleString()}`;
+  document.getElementById('summaryGrantExpense').innerText = `₩ ${settledGrantExpenseTotal.toLocaleString()}`;
   document.getElementById('summaryPersonalExpense').innerText = `₩ ${settledPersonalExpenseTotal.toLocaleString()}`;
   
   document.getElementById('summaryBalanceMain').innerText = `₩ ${finalTotalBalance.toLocaleString()}`;
@@ -1075,13 +1114,28 @@ function parseFormattedNumber(val) {
   return parseInt(clean, 10) || 0;
 }
 
+/* 📊 [양방향 자동 계산 & 체크박스 연동 엔진] */
 window.updateSettlementField = function(id, field, value) {
   const row = settlementData.find(s => s.id === id);
   if (row) {
     if (field === 'krw') {
-      row[field] = parseFormattedNumber(value);
-    } else if (field === 'aud' || field === 'rate') {
-      row[field] = parseInt(value, 10) || 0;
+      row.krw = parseFormattedNumber(value);
+      // 금액(원) 입력 시 ➔ AUD 현지 금액 자동 계산! (KRW / 환율)
+      const currentRate = parseFloat(row.rate) || globalExchangeRate || 1;
+      if (currentRate > 0) {
+        row.aud = Math.round((row.krw / currentRate) * 100) / 100;
+      }
+    } else if (field === 'aud') {
+      row.aud = parseFloat(value) || 0;
+      // 현지(AUD) 입력 시 ➔ 원화 금액(KRW) 자동 계산! (AUD * 환율)
+      const currentRate = parseFloat(row.rate) || globalExchangeRate || 1;
+      row.krw = Math.round(row.aud * currentRate);
+    } else if (field === 'rate') {
+      row.rate = parseFloat(value) || globalExchangeRate || 1;
+      // 환율 변경 시 ➔ 원화 금액 자동 갱신
+      if (row.aud) {
+        row.krw = Math.round(row.aud * row.rate);
+      }
     } else if (field === 'isGrantUsed') {
       row.isGrantUsed = Boolean(value);
       row.isSettled = Boolean(value);
