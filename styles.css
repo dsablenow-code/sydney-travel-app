@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 스타일시트 v1.6.1
-   (드로어 열림 상태에서 메인페이지 동시 수정 가능 & 휠 스크롤 확대/축소 부작용 완전 차단)
+   2026 호주머니 0원의 배낭연수 스타일시트 v1.6.2
+   (마우스 호버 시 일정요약 슬라이딩 자동 확장 & 이탈 시 부드럽게 닫힘 탑재)
    ========================================================================== */
 
 :root {
@@ -493,13 +493,19 @@ body.dark-mode .per-person-full-card {
 }
 
 /* ================= ================= =================
-   📅 [개선] 메인 페이지 동시 작업 가능 플로팅 사이드 드로어
+   📅 [마우스 호버 슬라이딩] 마우스를 올리면 길게 뻗어나오는 일정 드로어
    ================= ================= ================= */
-.global-itinerary-toggle-btn {
+.global-drawer-wrapper {
   position: fixed;
+  top: 160px;
   right: 0;
-  top: 180px;
   z-index: 2200;
+}
+
+.global-itinerary-toggle-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
   background: var(--sydney-ocean);
   color: white;
   border: none;
@@ -512,14 +518,12 @@ body.dark-mode .per-person-full-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  z-index: 2210;
 }
 
-.global-itinerary-toggle-btn:hover {
-  transform: translateX(-4px);
-  background: #006677;
-}
-
+/* 마우스 올리면(Hover) 패널이 길게 뻗어나옴 */
 .global-itinerary-drawer {
   position: fixed;
   top: 0;
@@ -527,20 +531,21 @@ body.dark-mode .per-person-full-card {
   width: 360px;
   height: 100vh;
   background: var(--clay-card-bg);
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
-  z-index: 2100;
-  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.22);
+  z-index: 2150;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
   padding: 20px;
   display: flex;
   flex-direction: column;
   pointer-events: auto;
-  /* 💡 휠 스크롤 부작용 완벽 방어 */
   touch-action: pan-y;
   overscroll-behavior: contain;
 }
 
+/* 마우스를 올리거나(.hover-active) 활성화 상태(.active) 시 뻗어나옴 */
+.global-itinerary-drawer.hover-active,
 .global-itinerary-drawer.active {
-  right: 0;
+  right: 0 !important;
 }
 
 @media (max-width: 480px) {
@@ -580,7 +585,6 @@ body.dark-mode .per-person-full-card {
   flex-direction: column;
   gap: 14px;
   padding-right: 4px;
-  /* 💡 드로어 내부 스크롤 고정 */
   overscroll-behavior: contain;
 }
 

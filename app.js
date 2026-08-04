@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.1
-   (드로어 열림 상태에서 메인페이지 동시 수정 가능 & 휠 스크롤 확대/축소 부작용 완전 차단)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.2
+   (마우스 호버 시 일정요약 슬라이딩 자동 확장 & 이탈 시 부드럽게 닫힘 탑재)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -187,7 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDataFromStorage();
   initTabNavigation();
   renderItinerarySidebar();
-  renderDrawerItineraryList(); // 📅 전역 일정 드로어 렌더링
+  renderDrawerItineraryList();
+  initHoverItineraryDrawer(); // 💡 마우스 호버 자동 뻗어나옴 바인딩
   initMap();
   renderChecklist();
   renderSettlementTable();
@@ -195,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMultiWindowSyncChannel();
   initKeyboardShortcutListeners();
 
-  // 💡 드로어 휠 스크롤 전파 방지 리스너 (지도 확대/축소 및 화면 확대 부작용 100% 방지)
+  // 💡 드로어 휠 스크롤 전파 방지 리스너
   const drawer = document.getElementById('globalItineraryDrawer');
   if (drawer) {
     drawer.addEventListener('wheel', (e) => {
@@ -204,20 +205,54 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 📅 전역 슬라이딩 일정 사이드 드로어 제어 함수 (메인 페이지 동시 수정 허용!)
+// 💡 [마우스 호버 슬라이딩 엔진]: 마우스를 올리면 길게 뻗어나오고 나가면 들어감!
+function initHoverItineraryDrawer() {
+  const btn = document.getElementById('globalItineraryToggleBtn');
+  const drawer = document.getElementById('globalItineraryDrawer');
+  if (!btn || !drawer) return;
+
+  let hoverTimer = null;
+
+  const expandDrawer = () => {
+    if (hoverTimer) clearTimeout(hoverTimer);
+    drawer.classList.add('hover-active');
+    renderDrawerItineraryList();
+  };
+
+  const collapseDrawer = () => {
+    hoverTimer = setTimeout(() => {
+      if (!drawer.classList.contains('active')) {
+        drawer.classList.remove('hover-active');
+      }
+    }, 250); // 0.25초 후 부드럽게 복귀
+  };
+
+  btn.addEventListener('mouseenter', expandDrawer);
+  btn.addEventListener('mouseleave', collapseDrawer);
+  drawer.addEventListener('mouseenter', expandDrawer);
+  drawer.addEventListener('mouseleave', collapseDrawer);
+}
+
+// 📅 클릭 시 고정 토글 함수
 window.toggleGlobalItineraryDrawer = function() {
   const drawer = document.getElementById('globalItineraryDrawer');
   if (drawer) {
     const isActive = drawer.classList.toggle('active');
     if (isActive) {
-      renderDrawerItineraryList(); // 열 때 최신 일정 데이터 업데이트
+      drawer.classList.add('hover-active');
+      renderDrawerItineraryList();
+    } else {
+      drawer.classList.remove('hover-active');
     }
   }
 };
 
 window.closeGlobalItineraryDrawer = function() {
   const drawer = document.getElementById('globalItineraryDrawer');
-  if (drawer) drawer.classList.remove('active');
+  if (drawer) {
+    drawer.classList.remove('active');
+    drawer.classList.remove('hover-active');
+  }
 };
 
 /* 📅 전역 일정 드로어 패널용 읽기 전용 렌더링 함수 */
@@ -509,7 +544,7 @@ function broadcastSyncToOtherWindows() {
 function renderAllViews() {
   renderHotelAndEmergencyDisplay();
   renderItinerarySidebar();
-  renderDrawerItineraryList(); // 📅 전역 일정 드로어 갱신
+  renderDrawerItineraryList();
   updateMapMarkersAndPolylines();
   renderChecklist();
   renderSettlementTable();
