@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 녹색 버튼 초슬림 배지 개편으로 본문 가림 100% 원천 차단 (v=1.6.3) -->
-  <link rel="stylesheet" href="styles.css?v=1.6.3">
+  <!-- 평소 36px 고정 & 호버 시 스르륵 글자 노출 불릿프루프 수리 (v=1.6.4) -->
+  <link rel="stylesheet" href="styles.css?v=1.6.4">
 </head>
 <body>
 
@@ -62,10 +62,10 @@
   </header>
 
   <!-- ================= ================= =================
-       📅 전역 슬림 플로팅 버튼 & 호버 슬라이드 드로어 패널 (본문 가림 방지 초슬림 배지)
+       📅 전역 36px 아이콘 전용 플로팅 버튼 & 호버 슬라이드 드로어
        ================= ================= ================= -->
-  <button id="globalItineraryToggleBtn" class="global-itinerary-toggle-btn" onclick="toggleGlobalItineraryDrawer()" title="일정 요약 접기/펴기">
-    <i class="fa-solid fa-calendar-days"></i> <span>일정 요약</span>
+  <button id="globalItineraryToggleBtn" class="global-itinerary-toggle-btn" onclick="toggleGlobalItineraryDrawer()" title="8/19~8/24 연수 일정 요약">
+    <i class="fa-solid fa-calendar-days"></i><span>일정 요약</span>
   </button>
 
   <aside id="globalItineraryDrawer" class="global-itinerary-drawer">
@@ -577,6 +577,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.6.3"></script>
+  <script src="app.js?v=1.6.4"></script>
 </body>
 </html>

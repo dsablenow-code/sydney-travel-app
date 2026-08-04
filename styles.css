@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 스타일시트 v1.6.3
-   (플로팅 녹색 버튼 콤팩트 초슬림 아이콘 배지 개편 - 본문 가림 100% 방지)
+   2026 호주머니 0원의 배낭연수 스타일시트 v1.6.4
+   (기본 상태 초슬림 아이콘 전용 36px 고정 & 호버 시에만 글자 스르륵 뻗어나옴 불릿프루프 수리)
    ========================================================================== */
 
 :root {
@@ -493,65 +493,83 @@ body.dark-mode .per-person-full-card {
 }
 
 /* ================= ================= =================
-   💡 [개편] 초슬림 콤팩트 아이콘 배지 (본문 가림 100% 방지)
+   💡 [강력 수리] 평소 36px 아이콘 고정 & 마우스 호버 시에만 글자 스르륵 노출
    ================= ================= ================= */
 .global-itinerary-toggle-btn {
-  position: fixed;
-  right: 0;
-  top: 180px;
-  z-index: 2200;
-  background: var(--sydney-ocean);
-  color: white;
-  border: none;
-  padding: 10px 8px 10px 12px;
-  border-radius: 20px 0 0 20px;
-  box-shadow: -3px 4px 12px rgba(0, 128, 148, 0.35);
-  font-size: 0.82rem;
-  font-weight: 800;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
+  position: fixed !important;
+  right: 0 !important;
+  top: 180px !important;
+  z-index: 2200 !important;
+  background: var(--sydney-ocean) !important;
+  color: white !important;
+  border: none !important;
+  
+  /* 💡 핵심: 평소 크기 38px 아이콘 전용 불릿프루프 고정! */
+  width: 38px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  border-radius: 18px 0 0 18px !important;
+  box-shadow: -3px 4px 12px rgba(0, 128, 148, 0.4) !important;
+  cursor: pointer !important;
+  
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease !important;
 }
 
-/* 평소에는 글자 숨김 ➔ 단 32px 슬림 배지로 본문 100% 안 가림 */
+/* 아이콘 중앙 정렬 */
+.global-itinerary-toggle-btn i {
+  font-size: 1.1rem !important;
+  flex-shrink: 0 !important;
+}
+
+/* 평소 글자 텍스트 100% 완전 차단 숨김! */
 .global-itinerary-toggle-btn span {
-  display: none;
+  display: none !important;
+  opacity: 0 !important;
+  margin-left: 0 !important;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+  transition: opacity 0.2s ease !important;
 }
 
-/* 마우스 올리면 글자 스르륵 뻗어나옴! */
+/* 💡 마우스를 이 아이콘 배지에 올렸을 때만 스르륵 뻗어나오며 글자 노출! */
 .global-itinerary-toggle-btn:hover {
-  padding: 10px 16px 10px 14px;
-  background: #006677;
-  box-shadow: -4px 6px 18px rgba(0, 128, 148, 0.5);
+  width: 110px !important;
+  justify-content: flex-start !important;
+  padding-left: 12px !important;
+  background: #006677 !important;
 }
 
 .global-itinerary-toggle-btn:hover span {
-  display: inline;
+  display: inline !important;
+  opacity: 1 !important;
+  margin-left: 6px !important;
 }
 
-/* 드로어 패널 */
+/* 💡 [드로어 패널]: 평소에는 화면 우측 밖으로 100% 숨김 (-380px) */
 .global-itinerary-drawer {
-  position: fixed;
-  top: 0;
-  right: -380px;
-  width: 360px;
-  height: 100vh;
-  background: var(--clay-card-bg);
-  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.22);
-  z-index: 2150;
-  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  pointer-events: auto;
-  touch-action: pan-y;
-  overscroll-behavior: contain;
+  position: fixed !important;
+  top: 0 !important;
+  right: -380px !important; /* 💡 무조건 기본 숨김! */
+  width: 360px !important;
+  height: 100vh !important;
+  background: var(--clay-card-bg) !important;
+  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.22) !important;
+  z-index: 2150 !important;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  pointer-events: auto !important;
+  touch-action: pan-y !important;
+  overscroll-behavior: contain !important;
 }
 
-/* 호주머니 호버 또는 클릭 시 슬라이딩으로 길게 뻗어나옴 */
+/* 마우스 올리거나 클릭 시에만 스르륵 오른쪽 0px로 길게 나타남! */
 .global-itinerary-drawer.hover-active,
 .global-itinerary-drawer.active {
   right: 0 !important;
@@ -559,8 +577,8 @@ body.dark-mode .per-person-full-card {
 
 @media (max-width: 480px) {
   .global-itinerary-drawer {
-    width: 85vw;
-    right: -90vw;
+    width: 85vw !important;
+    right: -90vw !important;
   }
 }
 
