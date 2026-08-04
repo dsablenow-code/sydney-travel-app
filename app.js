@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.7
-   (서류 파일명 텍스트 겹침/눌림 100% 수리 및 라인하이트 보강)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.8
+   (연수 정산서 구분 1순위 -> 날짜 2순위 자동 정렬 및 엑셀 내보내기 완벽 적용)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -95,6 +95,18 @@ const defaultItinerary = [
 const categoryOptions = [
   '항공료', '숙박비', '보험가입비', '문화체험비', '식비', '통신비', '교통비', '기타'
 ];
+
+// 📊 정산서 정렬 전용 순서 우선순위 맵 (항공 → 숙박 → 보험 → 문화 → 식비 → 통신 → 교통 → 기타)
+const categoryPriorityMap = {
+  '항공료': 1, '항공': 1,
+  '숙박비': 2, '숙박': 2,
+  '보험가입비': 3, '보험': 3,
+  '문화체험비': 4, '문화': 4,
+  '식비': 5,
+  '통신비': 6, '통신': 6,
+  '교통비': 7, '교통': 7,
+  '기타': 8
+};
 
 const defaultSettlements = [
   { id: 1, category: '항공료', date: '2026-06-24', vendor: '네이버페이 / 트립닷컴', detail: '인천 ⇄ 시드니 왕복 항공권', krw: 1347900, aud: 1500, rate: 898, method: '현금/카드', isGrantUsed: true },
@@ -191,12 +203,29 @@ function getItemWithFallback(masterKey, legacyPrefix) {
   return null;
 }
 
+// 📊 정산서 데이터 1순위: 구분(항공->숙박->보험->문화->식비->통신->교통->기타), 2순위: 먼 날짜(빠른 날짜) 오름차순 다중 정렬 함수
+function sortSettlementData(dataList) {
+  if (!Array.isArray(dataList)) return [];
+  return [...dataList].sort((a, b) => {
+    // 1. 구분별 정렬 (우선순위 1)
+    const prioA = categoryPriorityMap[a.category] || 99;
+    const prioB = categoryPriorityMap[b.category] || 99;
+    if (prioA !== prioB) {
+      return prioA - prioB;
+    }
+    // 2. 날짜별 정렬 (우선순위 2 - 빠른/먼 날짜 오름차순)
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    return dateA.localeCompare(dateB);
+  });
+}
+
 function loadDataFromStorage() {
   const savedItinerary = getItemWithFallback(STORAGE_KEYS.ITINERARY, 'sydney_itinerary');
   itineraryData = savedItinerary ? JSON.parse(savedItinerary) : [...defaultItinerary];
 
   const savedSettlement = getItemWithFallback(STORAGE_KEYS.SETTLEMENT, 'sydney_settlement');
-  settlementData = savedSettlement ? JSON.parse(savedSettlement) : [...defaultSettlements];
+  settlementData = savedSettlement ? sortSettlementData(JSON.parse(savedSettlement)) : sortSettlementData(defaultSettlements);
 
   const savedGrant = getItemWithFallback(STORAGE_KEYS.GRANT, 'sydney_grant');
   grantAmount = savedGrant ? parseInt(savedGrant, 10) : 2500000;
@@ -228,6 +257,9 @@ function loadDataFromStorage() {
 }
 
 function saveDataToStorage() {
+  // 저장할 때도 정렬된 상태를 항상 유지
+  settlementData = sortSettlementData(settlementData);
+
   localStorage.setItem(STORAGE_KEYS.ITINERARY, JSON.stringify(itineraryData));
   localStorage.setItem(STORAGE_KEYS.SETTLEMENT, JSON.stringify(settlementData));
   localStorage.setItem(STORAGE_KEYS.GRANT, grantAmount.toString());
@@ -346,9 +378,10 @@ function updateCloudSyncBadge(isConnected, text) {
 }
 
 function pushDataToFirebaseCloud() {
+  const sortedSettlements = sortSettlementData(settlementData);
   const payload = {
     itinerary: itineraryData,
-    settlement: settlementData,
+    settlement: sortedSettlements,
     grant: grantAmount,
     checklist: checklistData,
     hotel: hotelData,
@@ -392,7 +425,7 @@ function subscribeCloudSyncChanges() {
 function applyRemoteCloudData(data) {
   isRemoteUpdating = true;
   if (data.itinerary) itineraryData = data.itinerary;
-  if (data.settlement) settlementData = data.settlement;
+  if (data.settlement) settlementData = sortSettlementData(data.settlement);
   if (data.grant) grantAmount = data.grant;
   if (data.checklist) checklistData = data.checklist;
   if (data.hotel) hotelData = data.hotel;
@@ -671,7 +704,6 @@ window.filterDocTag = function(tag, btnEl) {
   renderSharedFiles();
 };
 
-/* 📄 [핵심 수리]: 서류 파일명 텍스트 라인하이트 & 마진 시원한 구분감 렌더링 */
 function renderSharedFiles() {
   const container = document.getElementById('sharedFileList');
   if (!container) return;
@@ -946,6 +978,7 @@ window.triggerAddSettlementRow = function() {
   renderSettlementTable();
 };
 
+/* 📊 [핵심 정렬 및 렌더링]: 정산서 테이블 렌더링 (구분 1순위 -> 먼 날짜 2순위 정렬) */
 function renderSettlementTable() {
   const tbody = document.getElementById('settlementTbody');
   if (!tbody) return;
@@ -953,7 +986,11 @@ function renderSettlementTable() {
   tbody.innerHTML = '';
   let totalKRW = 0;
 
-  settlementData.forEach((row, idx) => {
+  // 1순위: 구분(항공->숙박->보험->문화->식비->통신->교통->기타), 2순위: 먼 날짜(과거 날짜) 오름차순
+  const sortedSettlements = sortSettlementData(settlementData);
+  settlementData = sortedSettlements; // 정렬 상태 유지
+
+  sortedSettlements.forEach((row, idx) => {
     const krwVal = parseInt(row.krw, 10) || 0;
     totalKRW += krwVal;
 
@@ -1042,10 +1079,11 @@ window.deleteSettlementRow = function(id) {
   renderSettlementTable();
 };
 
+/* 📊 [지원금 엑셀 다운로드]: 동일한 정렬 규칙(구분 1순위 -> 먼 날짜 2순위) 적용 */
 window.exportGrantOnlyCSV = function() {
   const BOM = "\uFEFF";
   let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법\n";
-  const grantRows = settlementData.filter(r => r.isGrantUsed);
+  const grantRows = sortSettlementData(settlementData.filter(r => r.isGrantUsed));
   if (grantRows.length === 0) {
     alert('지원금 사용이 체크된 지출 항목이 없습니다.');
     return;
@@ -1063,10 +1101,12 @@ window.exportGrantOnlyCSV = function() {
   document.body.removeChild(link);
 };
 
+/* 📊 [전체 엑셀 다운로드]: 동일한 정렬 규칙(구분 1순위 -> 먼 날짜 2순위) 적용 */
 window.exportFullCSV = function() {
   const BOM = "\uFEFF";
   let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법,지원금 사용여부\n";
-  settlementData.forEach((r, i) => {
+  const sortedRows = sortSettlementData(settlementData);
+  sortedRows.forEach((r, i) => {
     const isUsedStr = r.isGrantUsed ? "사용함(O)" : "미사용(X)";
     csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}",${r.krw},${r.aud},${r.rate},"${r.method}","${isUsedStr}"\n`;
   });
