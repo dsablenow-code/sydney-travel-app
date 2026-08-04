@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.6
-   (서류 공유함 모바일 박스사이징 100% 클래스 분리 수리)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.7
+   (서류 파일명 텍스트 겹침/눌림 100% 수리 및 라인하이트 보강)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -671,7 +671,7 @@ window.filterDocTag = function(tag, btnEl) {
   renderSharedFiles();
 };
 
-/* 📄 [핵심 수리]: 서류 공유함 스마트폰 박스사이징 100% 클래스 분리 */
+/* 📄 [핵심 수리]: 서류 파일명 텍스트 라인하이트 & 마진 시원한 구분감 렌더링 */
 function renderSharedFiles() {
   const container = document.getElementById('sharedFileList');
   if (!container) return;
@@ -694,10 +694,10 @@ function renderSharedFiles() {
 
     li.innerHTML = `
       <div class="doc-item-info">
-        <i class="fa-solid fa-file-pdf" style="color:var(--uluru-red); font-size:1.2rem; flex-shrink:0;"></i>
+        <i class="fa-solid fa-file-pdf" style="color:var(--uluru-red); font-size:1.3rem; flex-shrink:0; margin-top:2px;"></i>
         <div style="overflow:hidden; flex-grow:1;">
-          <div style="font-weight:700; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHTML(file.name)}</div>
-          <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">
+          <span class="doc-file-name">${escapeHTML(file.name)}</span>
+          <div class="doc-file-meta">
             <span class="clay-badge badge-blue" style="font-size:0.68rem; padding:1px 6px;">${escapeHTML(file.tag)}</span>
             <span>${file.size || '100 KB'}</span> · <span>${file.date || '최근'}</span>
           </div>

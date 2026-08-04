@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 클레이모피즘 디자인 시스템 v1.3.6
-   (서류 공유함 & 메모장 스마트폰 폭 100% 방어 패딩/마진 완전수리)
+   2026 호주머니 0원의 배낭연수 클레이모피즘 디자인 시스템 v1.3.7
+   (서류 파일명 텍스트 겹침/잘림 100% 시원한 높이 및 줄바꿈 완전 수리)
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Pretendard:wght@400;600;700;800&display=swap');
@@ -378,29 +378,47 @@ html, body {
   border-radius: 12px;
 }
 
-/* 서류 목록 전용 리스트 스타일 */
+/* 📄 서류 항목 리스트 텍스트 겹침/눌림 원천 차단 전용 클래스 */
 .doc-item-li {
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #FFFFFF;
-  padding: 10px 14px;
-  border-radius: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
   box-shadow: var(--clay-shadow-pressed);
   font-size: 0.85rem;
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  overflow: hidden;
 }
 
 .doc-item-info {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  overflow: hidden;
+  align-items: flex-start !important;
+  gap: 12px;
   flex: 1;
   min-width: 0;
+}
+
+.doc-file-name {
+  font-weight: 800;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  line-height: 1.45 !important;
+  margin-bottom: 4px !important;
+  word-break: break-all !important;
+  display: block;
+}
+
+.doc-file-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 .doc-item-actions {
@@ -551,7 +569,7 @@ html, body {
 }
 
 /* ==========================================================================
-   📱 스마트폰 모바일 화면 100% 핏 튜닝 (서류 공유함 & 카드 자식 폭 완전 보장)
+   📱 스마트폰 모바일 화면 100% 핏 튜닝
    ========================================================================== */
 @media (max-width: 900px) {
   .map-itinerary-grid {
@@ -628,7 +646,6 @@ html, body {
     gap: 14px !important;
   }
 
-  /* 📄 [서류 공유함 & 메모장 카드 헤더 및 버튼 100% 핏 보장] */
   .docs-card-header, .memo-card-header {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -642,21 +659,26 @@ html, body {
     justify-content: center !important;
   }
 
-  /* 📄 서류 리스트 스마트폰 수직 배치 (버튼 잘림 100% 방지) */
+  /* 📄 서류 리스트 스마트폰 수직 배치 및 텍스트 시원한 간격 유지 */
   .doc-item-li {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 8px !important;
-    padding: 10px 12px !important;
+    gap: 10px !important;
+    padding: 12px !important;
     width: 100% !important;
     box-sizing: border-box !important;
+  }
+
+  .doc-file-name {
+    font-size: 0.86rem !important;
+    line-height: 1.5 !important;
   }
 
   .doc-item-actions {
     width: 100% !important;
     justify-content: flex-end !important;
     border-top: 1px dashed #EEE;
-    padding-top: 6px !important;
+    padding-top: 8px !important;
     box-sizing: border-box !important;
   }
 
