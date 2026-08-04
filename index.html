@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 정산완료여부 체크박스 & 3컬럼 요약 카드 적용 (v=1.3.9) -->
-  <link rel="stylesheet" href="styles.css?v=1.3.9">
+  <!-- 개인 총 지출 & 정산완료 연동 총지출액(개인) 카드 적용 (v=1.4.0) -->
+  <link rel="stylesheet" href="styles.css?v=1.4.0">
 </head>
 <body>
 
@@ -209,9 +209,9 @@
           </div>
         </div>
 
-        <!-- 📊 정산 요약 카드 레이아웃 (요청받은 스크린샷 3컬럼 구조 반영) -->
+        <!-- 📊 정산 요약 카드 레이아웃 (개인 총 지출 & 정산완료 체크 연동) -->
         <div class="settlement-summary-container">
-          <!-- 컬럼 1: 지원금 & 정산완료금액 -->
+          <!-- 컬럼 1: 총 지원금 & 개인 총 지출 -->
           <div class="summary-col">
             <div style="background: var(--aus-gold-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -221,19 +221,22 @@
               <div id="summaryGrant" style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin-top: 4px;">₩ 2,500,000</div>
             </div>
             <div style="background: var(--eucalyptus-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
-              <span style="font-size: 0.78rem; font-weight: 700; color: var(--eucalyptus-green);">정산완료금액</span>
-              <div id="summarySettledGrant" style="font-size: 1.15rem; font-weight: 800; color: var(--eucalyptus-green); margin-top: 4px;">₩ 0</div>
+              <span style="font-size: 0.78rem; font-weight: 700; color: var(--eucalyptus-green);">개인 총 지출</span>
+              <div id="summaryPersonalTotalExpense" style="font-size: 1.15rem; font-weight: 800; color: var(--eucalyptus-green); margin-top: 4px;">₩ 0</div>
             </div>
           </div>
 
-          <!-- 컬럼 2: 총 지출액(지원금) & 총 지출액(개인) -->
+          <!-- 컬럼 2: 총 지출액(지원금) & 총 지출액(개인) [정산완료 체크 연동] -->
           <div class="summary-col">
             <div style="background: var(--uluru-red-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
               <span style="font-size: 0.78rem; font-weight: 700; color: var(--uluru-red);">총 지출액(지원금)</span>
               <div id="summaryGrantExpense" style="font-size: 1.15rem; font-weight: 800; color: var(--uluru-red); margin-top: 4px;">₩ 0</div>
             </div>
             <div style="background: #EDE7F6; padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
-              <span style="font-size: 0.78rem; font-weight: 700; color: #5E35B1;">총 지출액(개인)</span>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.78rem; font-weight: 700; color: #5E35B1;">총 지출액(개인)</span>
+                <span style="font-size: 0.68rem; color: #5E35B1; background: #FFF; padding: 1px 5px; border-radius: 8px;">정산완료 연동</span>
+              </div>
               <div id="summaryPersonalExpense" style="font-size: 1.15rem; font-weight: 800; color: #5E35B1; margin-top: 4px;">₩ 0</div>
             </div>
           </div>
@@ -511,6 +514,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.3.9"></script>
+  <script src="app.js?v=1.4.0"></script>
 </body>
 </html>

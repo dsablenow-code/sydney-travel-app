@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.9
-   (정산완료여부 체크박스 & 3컬럼 정산 요약 연동 시스템 탑재)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.4.0
+   (개인 총 지출 & 정산완료 여부 체크 연동 총지출액(개인) 시스템 완벽 탑재)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -202,7 +202,6 @@ function getItemWithFallback(masterKey, legacyPrefix) {
   return null;
 }
 
-// 📊 정산서 데이터 1순위: 구분(항공->숙박->보험->문화->식비->통신->교통->기타), 2순위: 먼 날짜(빠른 날짜) 오름차순 다중 정렬 함수
 function sortSettlementData(dataList) {
   if (!Array.isArray(dataList)) return [];
   return [...dataList].sort((a, b) => {
@@ -224,7 +223,6 @@ function loadDataFromStorage() {
   const savedSettlement = getItemWithFallback(STORAGE_KEYS.SETTLEMENT, 'sydney_settlement');
   const rawSettlement = savedSettlement ? JSON.parse(savedSettlement) : defaultSettlements;
   
-  // 데이터 호환성 가드: isSettled 필드가 없는 경우 isGrantUsed 값으로 기본 보정
   settlementData = sortSettlementData(rawSettlement.map(r => ({
     ...r,
     isSettled: typeof r.isSettled === 'boolean' ? r.isSettled : Boolean(r.isGrantUsed)
@@ -986,16 +984,16 @@ window.triggerAddSettlementRow = function() {
   renderSettlementTable();
 };
 
-/* 📊 [핵심 연산 & 렌더링]: 3컬럼 정산 요약 카드 및 정산완료여부 체크박스 연동 */
+/* 📊 [핵심 정산 연산 & 렌더링]: 개인 총 지출 & 정산완료 여부 체크 연동 총지출액(개인) */
 function renderSettlementTable() {
   const tbody = document.getElementById('settlementTbody');
   if (!tbody) return;
 
   tbody.innerHTML = '';
 
-  let grantExpenseTotal = 0;      // 지원금 사용 지출 총합
-  let personalExpenseTotal = 0;   // 개인 지출 총합
-  let settledGrantExpenseTotal = 0; // 정산완료 여부 체크된 지원금 지출 총합
+  let grantExpenseTotal = 0;           // 지원금 사용 지출 총합 (총 지출액 지원금)
+  let personalTotalExpense = 0;        // 개인 지출 전체 총합 (개인 총 지출)
+  let settledPersonalExpenseTotal = 0; // 개인 지출 중 정산완료(isSettled === true) 체크된 지출 총합 (총 지출액 개인 - 정산완료 연동!)
 
   const sortedSettlements = sortSettlementData(settlementData);
   settlementData = sortedSettlements;
@@ -1007,11 +1005,11 @@ function renderSettlementTable() {
 
     if (isGrant) {
       grantExpenseTotal += krwVal;
-      if (isSettled) {
-        settledGrantExpenseTotal += krwVal;
-      }
     } else {
-      personalExpenseTotal += krwVal;
+      personalTotalExpense += krwVal; // 개인 지출 전체 합계
+      if (isSettled) {
+        settledPersonalExpenseTotal += krwVal; // 정산완료 체크된 개인 지출만 합산!
+      }
     }
 
     const tr = document.createElement('tr');
@@ -1054,15 +1052,17 @@ function renderSettlementTable() {
     tbody.appendChild(tr);
   });
 
-  // 📊 상단 3컬럼 요약 금액 정밀 계산 및 반영
-  const finalTotalExpense = grantExpenseTotal + personalExpenseTotal;
+  // 📊 카드 연산 반영:
+  // 1. 개인 총 지출: 개인 지출 항목 전체 합계 (personalTotalExpense)
+  // 2. 총 지출액(개인): 정산완료 체크에 따라 변동되는 개인 지출 합계 (settledPersonalExpenseTotal)
+  const finalTotalExpense = grantExpenseTotal + personalTotalExpense;
   const finalTotalBalance = grantAmount - finalTotalExpense;
   const grantBalance = grantAmount - grantExpenseTotal;
 
   document.getElementById('summaryGrant').innerText = `₩ ${grantAmount.toLocaleString()}`;
-  document.getElementById('summarySettledGrant').innerText = `₩ ${settledGrantExpenseTotal.toLocaleString()}`;
+  document.getElementById('summaryPersonalTotalExpense').innerText = `₩ ${personalTotalExpense.toLocaleString()}`;
   document.getElementById('summaryGrantExpense').innerText = `₩ ${grantExpenseTotal.toLocaleString()}`;
-  document.getElementById('summaryPersonalExpense').innerText = `₩ ${personalExpenseTotal.toLocaleString()}`;
+  document.getElementById('summaryPersonalExpense').innerText = `₩ ${settledPersonalExpenseTotal.toLocaleString()}`;
   
   document.getElementById('summaryBalanceMain').innerText = `₩ ${finalTotalBalance.toLocaleString()}`;
   document.getElementById('summaryGrantBalanceSub').innerText = `(지원금 차액: ₩ ${grantBalance.toLocaleString()})`;
@@ -1075,7 +1075,6 @@ function parseFormattedNumber(val) {
   return parseInt(clean, 10) || 0;
 }
 
-/* 📊 [체크박스 자동 연동]: 지원금 사용 체크 시 정산완료 여부도 자동으로 체크! */
 window.updateSettlementField = function(id, field, value) {
   const row = settlementData.find(s => s.id === id);
   if (row) {
@@ -1085,7 +1084,6 @@ window.updateSettlementField = function(id, field, value) {
       row[field] = parseInt(value, 10) || 0;
     } else if (field === 'isGrantUsed') {
       row.isGrantUsed = Boolean(value);
-      // 지원금 사용을 체크하면 정산완료 여부도 자동 체크! 체크 해제 시 자동 해제!
       row.isSettled = Boolean(value);
     } else if (field === 'isSettled') {
       row.isSettled = Boolean(value);
@@ -1115,7 +1113,6 @@ window.deleteSettlementRow = function(id) {
   renderSettlementTable();
 };
 
-/* 📊 [지원금 엑셀 다운로드]: 정산완료 여부 컬럼 추가 동기화 */
 window.exportGrantOnlyCSV = function() {
   const BOM = "\uFEFF";
   let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법,정산완료 여부\n";
@@ -1138,7 +1135,6 @@ window.exportGrantOnlyCSV = function() {
   document.body.removeChild(link);
 };
 
-/* 📊 [전체 엑셀 다운로드]: 지원금 사용 및 정산완료 여부 컬럼 추가 동기화 */
 window.exportFullCSV = function() {
   const BOM = "\uFEFF";
   let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법,지원금 사용여부,정산완료 여부\n";
