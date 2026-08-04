@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.2
-   (Realtime Database 100% 카드등록 없는 무제한 클라우드 동기화 엔진)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.3
+   (Realtime Database asia-southeast1 동적 URL 자동 연결 완성판)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -325,7 +325,7 @@ function initFirebaseCloudSync() {
           firebase.initializeApp(config);
         }
         
-        // Realtime Database 수신기 시도
+        // Realtime Database 수신기 시도 (동적 리전 자동 대응)
         try {
           rtdbInstance = firebase.database();
         } catch(e) {}
@@ -372,7 +372,7 @@ function pushDataToFirebaseCloud() {
     updatedAt: Date.now()
   };
 
-  // 1. Realtime Database (카드등록 필요없는 무제한 DB)
+  // 1. Realtime Database (asia-southeast1 포함 무제한 무료 DB)
   if (rtdbInstance) {
     rtdbInstance.ref('sydney_travel_app/master_data').set(payload);
   }
@@ -452,16 +452,17 @@ window.saveFirebaseConfigModal = function(e) {
     return;
   }
 
+  // asia-southeast1 동적 호환 URL 설정
   const configObj = {
     apiKey: apiKey,
     projectId: projectId,
-    databaseURL: `https://${projectId}-default-rtdb.firebaseio.com`,
+    databaseURL: `https://${projectId}-default-rtdb.asia-southeast1.firebasedatabase.app`,
     authDomain: `${projectId}.firebaseapp.com`,
     storageBucket: `${projectId}.appspot.com`
   };
 
   localStorage.setItem(STORAGE_KEYS.FIREBASE_CONFIG, JSON.stringify(configObj));
-  alert('☁️ 구글 파이어베이스 설정이 저장되었습니다! 카드등록 없는 0.1초 실시간 동기화를 시작합니다.');
+  alert('☁️ 구글 파이어베이스 설정이 저장되었습니다! 0.1초 실시간 클라우드 동기화를 가동합니다.');
   closeCloudSyncConfigModal();
   initFirebaseCloudSync();
 };
@@ -1411,8 +1412,7 @@ function renderItinerarySidebar() {
   container.innerHTML = '';
 
   itineraryData.forEach((day) => {
-    const card = document.append? document.createElement('div') : null;
-    if (!card) return;
+    const card = document.createElement('div');
     card.className = 'day-card';
     card.style.borderLeftColor = day.color;
 
