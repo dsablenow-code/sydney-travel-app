@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 전역 환율 총괄 적용 & 원/AUD 양방향 자동 계산 버전 (v=1.4.1) -->
-  <link rel="stylesheet" href="styles.css?v=1.4.1">
+  <!-- 지원금차액/개인정산차액 2개 카드 분리 & 환율 일괄동기화 양방향 자동계산 (v=1.4.2) -->
+  <link rel="stylesheet" href="styles.css?v=1.4.2">
 </head>
 <body>
 
@@ -199,12 +199,12 @@
             <p style="font-size: 0.8rem; color: var(--text-secondary);">[팀명/팀원이름(전체기입) / 연수기간 2026.08.19 ~ 08.24] · (정렬: 구분1순위 ➔ 먼날짜2순위)</p>
           </div>
           
-          <!-- 💱 전역 환율 설정 및 컨트롤 버튼 툴바 -->
+          <!-- 💱 전역 환율 일괄적용 툴바 -->
           <div style="display: flex; gap: 8px; flex-wrap: wrap; width: 100%; align-items: center;">
             <div style="background: #F8F6F0; border: 1px solid #E5DEC9; padding: 6px 12px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 0.8rem; font-weight: 700; color: var(--sydney-ocean);"><i class="fa-solid fa-coins"></i> 총괄 환율:</span>
               <span style="font-size: 0.85rem; font-weight: 800;" id="displayGlobalRate">1 AUD = ₩ 900</span>
-              <button class="clay-btn clay-btn-secondary" style="padding: 2px 8px; font-size: 0.72rem;" onclick="triggerEditGlobalRate()"><i class="fa-solid fa-pen"></i> 총괄 환율 수정</button>
+              <button class="clay-btn clay-btn-secondary" style="padding: 2px 8px; font-size: 0.72rem;" onclick="triggerEditGlobalRate()"><i class="fa-solid fa-pen"></i> 환율 일괄 변경</button>
             </div>
             
             <div style="display: flex; gap: 6px; flex: 1; flex-wrap: wrap;">
@@ -219,7 +219,7 @@
           </div>
         </div>
 
-        <!-- 📊 정산 요약 카드 레이아웃 -->
+        <!-- 📊 정산 요약 카드 레이아웃 (컬럼 3: 지원금 차액 & 개인 정산 차액 2개 카드 완전 분리) -->
         <div class="settlement-summary-container">
           <!-- 컬럼 1: 총 지원금 & 개인 총 지출 -->
           <div class="summary-col">
@@ -248,11 +248,16 @@
             </div>
           </div>
 
-          <!-- 컬럼 3: 최종 정산 차액 (정산완료 체크 100% 실시간 반영) -->
-          <div class="summary-col summary-col-main" style="background: var(--sydney-ocean-soft); padding: 16px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed); display: flex; flex-direction: column; justify-content: center;">
-            <span style="font-size: 0.85rem; font-weight: 800; color: var(--sydney-ocean);">최종 정산 차액</span>
-            <div id="summaryBalanceMain" style="font-size: 1.25rem; font-weight: 800; color: var(--sydney-ocean); margin-top: 6px;">₩ 0</div>
-            <div id="summaryGrantBalanceSub" style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-top: 6px;">(지원금 차액: ₩ 0)</div>
+          <!-- 컬럼 3: 지원금 차액 & 개인 정산 차액 (2개 카드 분리 연동) -->
+          <div class="summary-col">
+            <div style="background: var(--sydney-ocean-soft); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
+              <span style="font-size: 0.78rem; font-weight: 700; color: var(--sydney-ocean);">지원금 차액</span>
+              <div id="summaryGrantBalance" style="font-size: 1.15rem; font-weight: 800; color: var(--sydney-ocean); margin-top: 4px;">₩ 0</div>
+            </div>
+            <div style="background: #E8EAF6; padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);">
+              <span style="font-size: 0.78rem; font-weight: 700; color: #3F51B5;">개인 정산 차액</span>
+              <div id="summaryPersonalBalance" style="font-size: 1.15rem; font-weight: 800; color: #3F51B5; margin-top: 4px;">₩ 0</div>
+            </div>
           </div>
         </div>
 
@@ -521,6 +526,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.4.1"></script>
+  <script src="app.js?v=1.4.2"></script>
 </body>
 </html>
