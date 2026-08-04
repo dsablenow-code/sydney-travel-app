@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.3
-   (Realtime Database asia-southeast1 동적 URL 자동 연결 완성판)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.5
+   (서류 공유함 모바일 리스트 수직배치 및 우측 버튼 잘림 완벽 수리)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -244,7 +244,6 @@ function saveDataToStorage() {
   localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(photoData));
   localStorage.setItem(STORAGE_KEYS.MEMOS, JSON.stringify(memoData));
 
-  // 로컬 변경 시 구글 클라우드로 전송 & 브로드캐스트 전송
   if (!isRemoteUpdating) {
     if (rtdbInstance || dbInstance) {
       pushDataToFirebaseCloud();
@@ -253,9 +252,6 @@ function saveDataToStorage() {
   }
 }
 
-// ================= ================= =================
-// ⚡ 브라우저/창 간 0.1초 실시간 동기화 채널 (Broadcast & Storage Event)
-// ================= ================= =================
 function initMultiWindowSyncChannel() {
   if ('BroadcastChannel' in window) {
     syncBroadcastChannel = new BroadcastChannel('sydney_travel_sync_channel');
@@ -311,9 +307,6 @@ function showSyncFlashToast(msg) {
   }
 }
 
-// ================= ================= =================
-// ☁️ 구글 파이어베이스 실시간 동기화 (Realtime DB & Firestore 호환)
-// ================= ================= =================
 function initFirebaseCloudSync() {
   const savedConfig = localStorage.getItem(STORAGE_KEYS.FIREBASE_CONFIG);
   
@@ -325,12 +318,10 @@ function initFirebaseCloudSync() {
           firebase.initializeApp(config);
         }
         
-        // Realtime Database 수신기 시도 (동적 리전 자동 대응)
         try {
           rtdbInstance = firebase.database();
         } catch(e) {}
 
-        // Firestore 수신기 시도
         try {
           dbInstance = firebase.firestore();
         } catch(e) {}
@@ -372,12 +363,10 @@ function pushDataToFirebaseCloud() {
     updatedAt: Date.now()
   };
 
-  // 1. Realtime Database (asia-southeast1 포함 무제한 무료 DB)
   if (rtdbInstance) {
     rtdbInstance.ref('sydney_travel_app/master_data').set(payload);
   }
 
-  // 2. Firestore DB
   if (dbInstance) {
     try {
       dbInstance.collection('sydney_travel_app').doc('master_data').set(payload, { merge: true });
@@ -386,7 +375,6 @@ function pushDataToFirebaseCloud() {
 }
 
 function subscribeCloudSyncChanges() {
-  // Realtime Database 실시간 반응
   if (rtdbInstance) {
     rtdbInstance.ref('sydney_travel_app/master_data').on('value', snapshot => {
       const data = snapshot.val();
@@ -396,7 +384,6 @@ function subscribeCloudSyncChanges() {
     });
   }
 
-  // Firestore 실시간 반응
   if (dbInstance) {
     try {
       dbInstance.collection('sydney_travel_app').doc('master_data').onSnapshot((doc) => {
@@ -452,7 +439,6 @@ window.saveFirebaseConfigModal = function(e) {
     return;
   }
 
-  // asia-southeast1 동적 호환 URL 설정
   const configObj = {
     apiKey: apiKey,
     projectId: projectId,
@@ -467,9 +453,6 @@ window.saveFirebaseConfigModal = function(e) {
   initFirebaseCloudSync();
 };
 
-// ================= ================= =================
-// UTF-8 Bit 11 Flag 지원 Pure JS ZIP Packager
-// ================= ================= =================
 function createPureZipBlob(fileEntries) {
   const textEncoder = new TextEncoder();
 
@@ -694,6 +677,7 @@ window.filterDocTag = function(tag, btnEl) {
   renderSharedFiles();
 };
 
+/* 📄 [핵심 튜닝]: 서류 리스트 렌더링 (스마트폰 모바일 반응형 핏 완전 보장) */
 function renderSharedFiles() {
   const container = document.getElementById('sharedFileList');
   if (!container) return;
@@ -721,12 +705,13 @@ function renderSharedFiles() {
       border-radius: 12px;
       box-shadow: var(--clay-shadow-pressed);
       font-size: 0.85rem;
+      width: 100%;
     `;
 
     li.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
+      <div style="display:flex; align-items:center; gap:10px; overflow:hidden; width:100%;">
         <i class="fa-solid fa-file-pdf" style="color:var(--uluru-red); font-size:1.2rem; flex-shrink:0;"></i>
-        <div style="overflow:hidden;">
+        <div style="overflow:hidden; flex-grow:1;">
           <div style="font-weight:700; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHTML(file.name)}</div>
           <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">
             <span class="clay-badge badge-blue" style="font-size:0.68rem; padding:1px 6px;">${escapeHTML(file.tag)}</span>
@@ -734,7 +719,7 @@ function renderSharedFiles() {
           </div>
         </div>
       </div>
-      <div style="display:flex; gap:6px; flex-shrink:0;">
+      <div style="display:flex; gap:6px; flex-shrink:0; margin-top:4px;">
         <button class="clay-btn clay-btn-primary" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;" onclick="downloadSingleFile('${file.id}')">
           <i class="fa-solid fa-download"></i> 다운
         </button>

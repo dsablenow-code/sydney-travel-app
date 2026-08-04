@@ -1,12 +1,11 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 클레이모피즘 디자인 시스템 v1.3.4
-   (스마트폰 모바일 100% 핏 최적화: 헤더 삐져나옴, 갤러리/메모 1열 수직정렬)
+   2026 호주머니 0원의 배낭연수 클레이모피즘 디자인 시스템 v1.3.5
+   (서류 공유함 헤더/리스트/다운버튼 모바일 화면 잘림 100% 완전 수리)
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Pretendard:wght@400;600;700;800&display=swap');
 
 :root {
-  /* 호주 자연을 닮은 밝은 테마 색상 팔레트 */
   --sydney-sky: #E8F4F8;
   --sydney-ocean: #008094;
   --sydney-ocean-soft: #E0F2F5;
@@ -22,7 +21,6 @@
   --text-secondary: #4B5563;
   --text-muted: #9CA3AF;
   
-  /* 3D 클레이모피즘 입체 그림자 토큰 */
   --clay-shadow-main: 
     8px 8px 16px rgba(166, 175, 195, 0.4),
     -8px -8px 16px rgba(255, 255, 255, 0.9),
@@ -57,9 +55,6 @@ html, body {
   word-break: keep-all;
 }
 
-/* ==========================================================================
-   1. 글로벌 헤더 크기 핏 맞춤
-   ========================================================================== */
 .app-header {
   max-width: 1280px;
   margin: 0 auto;
@@ -106,7 +101,6 @@ html, body {
   color: var(--text-secondary);
 }
 
-/* 슬라이딩 네비게이션 탭 */
 .clay-nav {
   display: flex;
   gap: 10px;
@@ -144,9 +138,6 @@ html, body {
   box-shadow: var(--clay-shadow-pressed);
 }
 
-/* ==========================================================================
-   메인 레이아웃 & 5대 탭 컨테이너
-   ========================================================================== */
 .main-container {
   max-width: 1280px;
   margin: 0 auto;
@@ -177,7 +168,6 @@ html, body {
   width: 100%;
 }
 
-/* [탭 1] 지도 & 동선 */
 .info-cards-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -246,7 +236,6 @@ html, body {
   color: var(--text-secondary);
 }
 
-/* 일정 카드 사이드바 */
 .itinerary-sidebar {
   display: flex;
   flex-direction: column;
@@ -364,14 +353,12 @@ html, body {
   word-break: keep-all;
 }
 
-/* [탭 2] 체크리스트 */
 .checklist-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
-/* 태그 칩 */
 .doc-tag-chip, .photo-tag-chip {
   text-align: center;
   line-height: 1.2;
@@ -388,7 +375,6 @@ html, body {
   border-radius: 12px;
 }
 
-/* 버튼 & 배지 토큰 */
 .clay-btn {
   border: none;
   padding: 6px 14px;
@@ -444,7 +430,6 @@ html, body {
 .badge-orange { background: #FFF3E0; color: #E65100; }
 .badge-dark { background: #ECEFF1; color: #37474F; }
 
-/* 모달 팝업 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -529,7 +514,7 @@ html, body {
 }
 
 /* ==========================================================================
-   📱 스마트폰 모바일 화면 100% 핏 튜닝 (Smartphone 100% Fit Responsive)
+   📱 스마트폰 모바일 화면 100% 핏 튜닝 (서류 공유함 & 메모장 잘림 원천 수리)
    ========================================================================== */
 @media (max-width: 900px) {
   .map-itinerary-grid {
@@ -587,23 +572,46 @@ html, body {
     margin-bottom: 12px;
   }
 
-  /* 지도 탭 수직 1열 나열 */
   .info-cards-container {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
     margin-bottom: 14px !important;
   }
 
-  /* 체크리스트 모바일 1*4 수직 나열 */
   .checklist-grid {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
 
-  /* 서류 & 메모장 모바일 1열 나열 */
   .docs-memo-container {
     grid-template-columns: 1fr !important;
     gap: 14px !important;
+  }
+
+  /* 📄 [서류 공유함 & 스티키 메모장 모바일 수리]: 헤더 버튼 수직 정돈 */
+  .docs-card-header, .memo-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .docs-card-header .clay-btn, .memo-card-header .clay-btn {
+    width: 100% !important;
+  }
+
+  /* 📄 서류 리스트 스마트폰 2단 수직배치 (우측 다운/삭제 버튼 잘림 100% 해결!) */
+  #sharedFileList li {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+
+  #sharedFileList li > div:last-child {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    border-top: 1px dashed #EEE;
+    padding-top: 6px !important;
   }
 
   #memoGrid {
@@ -611,7 +619,6 @@ html, body {
     gap: 10px !important;
   }
 
-  /* 📸 [핵심]: 모바일 화면에서는 사진 갤러리를 100% 폭 1열 수직 나열로 정돈! */
   #photoGrid {
     grid-template-columns: 1fr !important;
     gap: 14px !important;
