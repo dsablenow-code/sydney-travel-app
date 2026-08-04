@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 클레이모피즘 디자인 시스템 v1.3.7
-   (서류 파일명 텍스트 겹침/잘림 100% 시원한 높이 및 줄바꿈 완전 수리)
+   2026 호주머니 0원의 배낭연수 클레이모피즘 디자인 시스템 v1.3.9
+   (정산완료여부 체크박스 & 3컬럼 정산 요약 카드 반응형 적용)
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Pretendard:wght@400;600;700;800&display=swap');
@@ -361,6 +361,20 @@ html, body {
   gap: 20px;
 }
 
+/* 📊 정산 요약 카드 레이아웃 (요청받은 스크린샷 3컬럼 구조) */
+.settlement-summary-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.summary-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* 태그 칩 */
 .doc-tag-chip, .photo-tag-chip {
   text-align: center;
@@ -577,6 +591,9 @@ html, body {
   }
   .map-container {
     height: 380px;
+  }
+  .settlement-summary-container {
+    grid-template-columns: 1fr !important;
   }
 }
 

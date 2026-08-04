@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.8
-   (연수 정산서 구분 1순위 -> 날짜 2순위 자동 정렬 및 엑셀 내보내기 완벽 적용)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.3.9
+   (정산완료여부 체크박스 & 3컬럼 정산 요약 연동 시스템 탑재)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -96,7 +96,6 @@ const categoryOptions = [
   '항공료', '숙박비', '보험가입비', '문화체험비', '식비', '통신비', '교통비', '기타'
 ];
 
-// 📊 정산서 정렬 전용 순서 우선순위 맵 (항공 → 숙박 → 보험 → 문화 → 식비 → 통신 → 교통 → 기타)
 const categoryPriorityMap = {
   '항공료': 1, '항공': 1,
   '숙박비': 2, '숙박': 2,
@@ -109,10 +108,10 @@ const categoryPriorityMap = {
 };
 
 const defaultSettlements = [
-  { id: 1, category: '항공료', date: '2026-06-24', vendor: '네이버페이 / 트립닷컴', detail: '인천 ⇄ 시드니 왕복 항공권', krw: 1347900, aud: 1500, rate: 898, method: '현금/카드', isGrantUsed: true },
-  { id: 2, category: '숙박비', date: '2026-06-11', vendor: '트립닷컴', detail: '시드니 중앙역 인근 숙소 (7박)', krw: 1700680, aud: 1890, rate: 899, method: '현금', isGrantUsed: true },
-  { id: 3, category: '보험가입비', date: '2026-07-31', vendor: '카카오페이 손해보험', detail: '해외 여행자보험 4인', krw: 59980, aud: 66, rate: 900, method: '카카오페이', isGrantUsed: true },
-  { id: 4, category: '문화체험비', date: '2026-07-31', vendor: '트래블포레스트', detail: '오페라하우스 내부 가이드투어 (11:45)', krw: 152000, aud: 168, rate: 904, method: '카드', isGrantUsed: true }
+  { id: 1, category: '항공료', date: '2026-06-24', vendor: '네이버페이 / 트립닷컴', detail: '인천 ⇄ 시드니 왕복 항공권', krw: 1347900, aud: 1500, rate: 898, method: '현금/카드', isGrantUsed: true, isSettled: true },
+  { id: 2, category: '숙박비', date: '2026-06-11', vendor: '트립닷컴', detail: '시드니 중앙역 인근 숙소 (7박)', krw: 1700680, aud: 1890, rate: 899, method: '현금', isGrantUsed: true, isSettled: true },
+  { id: 3, category: '보험가입비', date: '2026-07-31', vendor: '카카오페이 손해보험', detail: '해외 여행자보험 4인', krw: 59980, aud: 66, rate: 900, method: '카카오페이', isGrantUsed: true, isSettled: true },
+  { id: 4, category: '문화체험비', date: '2026-07-31', vendor: '트래블포레스트', detail: '오페라하우스 내부 가이드투어 (11:45)', krw: 152000, aud: 168, rate: 904, method: '카드', isGrantUsed: true, isSettled: true }
 ];
 
 const defaultChecklist = {
@@ -207,13 +206,11 @@ function getItemWithFallback(masterKey, legacyPrefix) {
 function sortSettlementData(dataList) {
   if (!Array.isArray(dataList)) return [];
   return [...dataList].sort((a, b) => {
-    // 1. 구분별 정렬 (우선순위 1)
     const prioA = categoryPriorityMap[a.category] || 99;
     const prioB = categoryPriorityMap[b.category] || 99;
     if (prioA !== prioB) {
       return prioA - prioB;
     }
-    // 2. 날짜별 정렬 (우선순위 2 - 빠른/먼 날짜 오름차순)
     const dateA = a.date || '';
     const dateB = b.date || '';
     return dateA.localeCompare(dateB);
@@ -225,7 +222,13 @@ function loadDataFromStorage() {
   itineraryData = savedItinerary ? JSON.parse(savedItinerary) : [...defaultItinerary];
 
   const savedSettlement = getItemWithFallback(STORAGE_KEYS.SETTLEMENT, 'sydney_settlement');
-  settlementData = savedSettlement ? sortSettlementData(JSON.parse(savedSettlement)) : sortSettlementData(defaultSettlements);
+  const rawSettlement = savedSettlement ? JSON.parse(savedSettlement) : defaultSettlements;
+  
+  // 데이터 호환성 가드: isSettled 필드가 없는 경우 isGrantUsed 값으로 기본 보정
+  settlementData = sortSettlementData(rawSettlement.map(r => ({
+    ...r,
+    isSettled: typeof r.isSettled === 'boolean' ? r.isSettled : Boolean(r.isGrantUsed)
+  })));
 
   const savedGrant = getItemWithFallback(STORAGE_KEYS.GRANT, 'sydney_grant');
   grantAmount = savedGrant ? parseInt(savedGrant, 10) : 2500000;
@@ -257,7 +260,6 @@ function loadDataFromStorage() {
 }
 
 function saveDataToStorage() {
-  // 저장할 때도 정렬된 상태를 항상 유지
   settlementData = sortSettlementData(settlementData);
 
   localStorage.setItem(STORAGE_KEYS.ITINERARY, JSON.stringify(itineraryData));
@@ -425,7 +427,12 @@ function subscribeCloudSyncChanges() {
 function applyRemoteCloudData(data) {
   isRemoteUpdating = true;
   if (data.itinerary) itineraryData = data.itinerary;
-  if (data.settlement) settlementData = sortSettlementData(data.settlement);
+  if (data.settlement) {
+    settlementData = sortSettlementData(data.settlement.map(r => ({
+      ...r,
+      isSettled: typeof r.isSettled === 'boolean' ? r.isSettled : Boolean(r.isGrantUsed)
+    })));
+  }
   if (data.grant) grantAmount = data.grant;
   if (data.checklist) checklistData = data.checklist;
   if (data.hotel) hotelData = data.hotel;
@@ -971,28 +978,41 @@ window.triggerAddSettlementRow = function() {
     aud: 50,
     rate: 900,
     method: '트래블월렛',
-    isGrantUsed: true
+    isGrantUsed: true,
+    isSettled: true
   };
   settlementData.push(newRow);
   saveDataToStorage();
   renderSettlementTable();
 };
 
-/* 📊 [핵심 정렬 및 렌더링]: 정산서 테이블 렌더링 (구분 1순위 -> 먼 날짜 2순위 정렬) */
+/* 📊 [핵심 연산 & 렌더링]: 3컬럼 정산 요약 카드 및 정산완료여부 체크박스 연동 */
 function renderSettlementTable() {
   const tbody = document.getElementById('settlementTbody');
   if (!tbody) return;
 
   tbody.innerHTML = '';
-  let totalKRW = 0;
 
-  // 1순위: 구분(항공->숙박->보험->문화->식비->통신->교통->기타), 2순위: 먼 날짜(과거 날짜) 오름차순
+  let grantExpenseTotal = 0;      // 지원금 사용 지출 총합
+  let personalExpenseTotal = 0;   // 개인 지출 총합
+  let settledGrantExpenseTotal = 0; // 정산완료 여부 체크된 지원금 지출 총합
+
   const sortedSettlements = sortSettlementData(settlementData);
-  settlementData = sortedSettlements; // 정렬 상태 유지
+  settlementData = sortedSettlements;
 
   sortedSettlements.forEach((row, idx) => {
     const krwVal = parseInt(row.krw, 10) || 0;
-    totalKRW += krwVal;
+    const isGrant = Boolean(row.isGrantUsed);
+    const isSettled = typeof row.isSettled === 'boolean' ? row.isSettled : isGrant;
+
+    if (isGrant) {
+      grantExpenseTotal += krwVal;
+      if (isSettled) {
+        settledGrantExpenseTotal += krwVal;
+      }
+    } else {
+      personalExpenseTotal += krwVal;
+    }
 
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid #F1ECE1';
@@ -1020,7 +1040,10 @@ function renderSettlementTable() {
       <td style="padding:6px;"><input type="number" value="${row.rate}" onchange="updateSettlementField(${row.id}, 'rate', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
       <td style="padding:6px;"><input type="text" value="${escapeHTML(row.method)}" onchange="updateSettlementField(${row.id}, 'method', this.value)" style="width:100%; border:none; background:transparent; outline:none;"></td>
       <td style="padding:6px; text-align:center;">
-        <input type="checkbox" ${row.isGrantUsed ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isGrantUsed', this.checked)" style="width:18px; height:18px; accent-color: var(--sydney-ocean); cursor:pointer;">
+        <input type="checkbox" ${isGrant ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isGrantUsed', this.checked)" style="width:18px; height:18px; accent-color: var(--sydney-ocean); cursor:pointer;">
+      </td>
+      <td style="padding:6px; text-align:center;">
+        <input type="checkbox" ${isSettled ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isSettled', this.checked)" style="width:18px; height:18px; accent-color: var(--eucalyptus-green); cursor:pointer;">
       </td>
       <td style="padding:6px; text-align:center;">
         <button class="clay-btn clay-btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deleteSettlementRow(${row.id})">
@@ -1031,10 +1054,18 @@ function renderSettlementTable() {
     tbody.appendChild(tr);
   });
 
+  // 📊 상단 3컬럼 요약 금액 정밀 계산 및 반영
+  const finalTotalExpense = grantExpenseTotal + personalExpenseTotal;
+  const finalTotalBalance = grantAmount - finalTotalExpense;
+  const grantBalance = grantAmount - grantExpenseTotal;
+
   document.getElementById('summaryGrant').innerText = `₩ ${grantAmount.toLocaleString()}`;
-  document.getElementById('summaryExpense').innerText = `₩ ${totalKRW.toLocaleString()}`;
-  const balance = grantAmount - totalKRW;
-  document.getElementById('summaryBalance').innerText = `₩ ${balance.toLocaleString()}`;
+  document.getElementById('summarySettledGrant').innerText = `₩ ${settledGrantExpenseTotal.toLocaleString()}`;
+  document.getElementById('summaryGrantExpense').innerText = `₩ ${grantExpenseTotal.toLocaleString()}`;
+  document.getElementById('summaryPersonalExpense').innerText = `₩ ${personalExpenseTotal.toLocaleString()}`;
+  
+  document.getElementById('summaryBalanceMain').innerText = `₩ ${finalTotalBalance.toLocaleString()}`;
+  document.getElementById('summaryGrantBalanceSub').innerText = `(지원금 차액: ₩ ${grantBalance.toLocaleString()})`;
 }
 
 function parseFormattedNumber(val) {
@@ -1044,6 +1075,7 @@ function parseFormattedNumber(val) {
   return parseInt(clean, 10) || 0;
 }
 
+/* 📊 [체크박스 자동 연동]: 지원금 사용 체크 시 정산완료 여부도 자동으로 체크! */
 window.updateSettlementField = function(id, field, value) {
   const row = settlementData.find(s => s.id === id);
   if (row) {
@@ -1052,7 +1084,11 @@ window.updateSettlementField = function(id, field, value) {
     } else if (field === 'aud' || field === 'rate') {
       row[field] = parseInt(value, 10) || 0;
     } else if (field === 'isGrantUsed') {
-      row[field] = Boolean(value);
+      row.isGrantUsed = Boolean(value);
+      // 지원금 사용을 체크하면 정산완료 여부도 자동 체크! 체크 해제 시 자동 해제!
+      row.isSettled = Boolean(value);
+    } else if (field === 'isSettled') {
+      row.isSettled = Boolean(value);
     } else {
       row[field] = value;
     }
@@ -1079,17 +1115,18 @@ window.deleteSettlementRow = function(id) {
   renderSettlementTable();
 };
 
-/* 📊 [지원금 엑셀 다운로드]: 동일한 정렬 규칙(구분 1순위 -> 먼 날짜 2순위) 적용 */
+/* 📊 [지원금 엑셀 다운로드]: 정산완료 여부 컬럼 추가 동기화 */
 window.exportGrantOnlyCSV = function() {
   const BOM = "\uFEFF";
-  let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법\n";
+  let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법,정산완료 여부\n";
   const grantRows = sortSettlementData(settlementData.filter(r => r.isGrantUsed));
   if (grantRows.length === 0) {
     alert('지원금 사용이 체크된 지출 항목이 없습니다.');
     return;
   }
   grantRows.forEach((r, i) => {
-    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}",${r.krw},${r.aud},${r.rate},"${r.method}"\n`;
+    const settledStr = r.isSettled ? "정산완료(O)" : "미정산(X)";
+    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}",${r.krw},${r.aud},${r.rate},"${r.method}","${settledStr}"\n`;
   });
   const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -1101,14 +1138,15 @@ window.exportGrantOnlyCSV = function() {
   document.body.removeChild(link);
 };
 
-/* 📊 [전체 엑셀 다운로드]: 동일한 정렬 규칙(구분 1순위 -> 먼 날짜 2순위) 적용 */
+/* 📊 [전체 엑셀 다운로드]: 지원금 사용 및 정산완료 여부 컬럼 추가 동기화 */
 window.exportFullCSV = function() {
   const BOM = "\uFEFF";
-  let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법,지원금 사용여부\n";
+  let csvContent = "연번,구분,결제일자,업체명,내역(상세),금액(원),현지(AUD),환율,결제방법,지원금 사용여부,정산완료 여부\n";
   const sortedRows = sortSettlementData(settlementData);
   sortedRows.forEach((r, i) => {
     const isUsedStr = r.isGrantUsed ? "사용함(O)" : "미사용(X)";
-    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}",${r.krw},${r.aud},${r.rate},"${r.method}","${isUsedStr}"\n`;
+    const settledStr = r.isSettled ? "정산완료(O)" : "미정산(X)";
+    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}",${r.krw},${r.aud},${r.rate},"${r.method}","${isUsedStr}","${settledStr}"\n`;
   });
   const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
