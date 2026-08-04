@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 스타일시트 v1.5.0
-   (다크모드 지원 / 메모-서류 순서 및 모바일 핏 / 체크리스트 2*2&1*4 / 요약 2*3 3열 & 1*1 인당지출)
+   2026 호주머니 0원의 배낭연수 스타일시트 v1.6.0
+   (전역 플로팅 일정 사이드 드로어 토글바 탑재 & 지도&동선 탭 전용 수정 제한)
    ========================================================================== */
 
 :root {
@@ -411,7 +411,7 @@ body.dark-mode .badge-dark { background: #37474F; color: #ECEFF1; }
 
 @media (max-width: 640px) {
   .settlement-summary-2x3 {
-    grid-template-columns: 1fr; /* 소형 모바일에서만 1열 수직 스택 */
+    grid-template-columns: 1fr;
   }
 }
 
@@ -421,7 +421,6 @@ body.dark-mode .badge-dark { background: #37474F; color: #ECEFF1; }
   gap: 10px;
 }
 
-/* 💡 [연수 정산서] 인당 지출 2*3 밑에 1*1 단독 전폭 카드 */
 .per-person-full-card {
   width: 100%;
   background: #FFF3E0;
@@ -437,7 +436,6 @@ body.dark-mode .per-person-full-card {
   border-color: #5D4037;
 }
 
-/* 📁 [서류 & 메모] 메모가 서류보다 위로 올라오도록 수직 스택 및 모바일 100% 핏 보장 */
 .docs-memo-container {
   display: flex;
   flex-direction: column;
@@ -494,6 +492,108 @@ body.dark-mode .per-person-full-card {
   align-items: center;
 }
 
+/* ================= ================= =================
+   📅 [신규] 모든 페이지 전역 사이드 플로팅 일정 드로어
+   ================= ================= ================= */
+.global-itinerary-toggle-btn {
+  position: fixed;
+  right: 0;
+  top: 180px;
+  z-index: 1500;
+  background: var(--sydney-ocean);
+  color: white;
+  border: none;
+  padding: 12px 16px 12px 14px;
+  border-radius: 24px 0 0 24px;
+  box-shadow: -4px 6px 18px rgba(0, 128, 148, 0.4);
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+}
+
+.global-itinerary-toggle-btn:hover {
+  transform: translateX(-4px);
+  background: #006677;
+}
+
+.global-itinerary-drawer {
+  position: fixed;
+  top: 0;
+  right: -380px;
+  width: 360px;
+  height: 100vh;
+  background: var(--clay-card-bg);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.25);
+  z-index: 2500;
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.global-itinerary-drawer.active {
+  right: 0;
+}
+
+@media (max-width: 480px) {
+  .global-itinerary-drawer {
+    width: 85vw;
+    right: -90vw;
+  }
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--input-border);
+}
+
+.drawer-header h3 {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.drawer-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+}
+
+.drawer-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  z-index: 2400;
+  display: none;
+}
+
+.drawer-backdrop.active {
+  display: block;
+}
+
 /* 모달 레이아웃 */
 .modal-overlay {
   position: fixed;
@@ -503,7 +603,7 @@ body.dark-mode .per-person-full-card {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
-  z-index: 2000;
+  z-index: 3000;
   display: none;
   align-items: center;
   justify-content: center;

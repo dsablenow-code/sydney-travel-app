@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.5.2
-   (환율 변경 시 원화(KRW) 금액 고정 & AUD 자동 재계산 엔진 탑재)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.0
+   (전역 플로팅 일정 사이드 드로어 토글바 탑재 & 지도&동선 탭 전용 수정 제한)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -187,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDataFromStorage();
   initTabNavigation();
   renderItinerarySidebar();
+  renderDrawerItineraryList(); // 📅 신규 전역 일정 드로어 렌더링
   initMap();
   renderChecklist();
   renderSettlementTable();
@@ -194,6 +195,72 @@ document.addEventListener('DOMContentLoaded', () => {
   initMultiWindowSyncChannel();
   initKeyboardShortcutListeners();
 });
+
+// 📅 전역 슬라이딩 일정 사이드 드로어 제어 함수
+window.toggleGlobalItineraryDrawer = function() {
+  const drawer = document.getElementById('globalItineraryDrawer');
+  const backdrop = document.getElementById('globalDrawerBackdrop');
+  if (drawer && backdrop) {
+    const isActive = drawer.classList.toggle('active');
+    if (isActive) {
+      backdrop.classList.add('active');
+      renderDrawerItineraryList(); // 열 때 최신 일정 데이터 업데이트
+    } else {
+      backdrop.classList.remove('active');
+    }
+  }
+};
+
+window.closeGlobalItineraryDrawer = function() {
+  const drawer = document.getElementById('globalItineraryDrawer');
+  const backdrop = document.getElementById('globalDrawerBackdrop');
+  if (drawer) drawer.classList.remove('active');
+  if (backdrop) backdrop.classList.remove('active');
+};
+
+/* 📅 전역 일정 드로어 패널용 읽기 전용(Read-Only) 렌더링 함수:
+   요구사항 반영 - 수정 버튼은 제거하고 읽기 전용으로만 구성되며, 세부 수정은 오직 [지도 & 동선] 탭에서 가능 */
+function renderDrawerItineraryList() {
+  const container = document.getElementById('drawerItineraryList');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  itineraryData.forEach((day) => {
+    const card = document.createElement('div');
+    card.className = 'day-card';
+    card.style.borderLeftColor = day.color;
+    card.style.marginBottom = '0';
+
+    const spotsListHtml = day.spots.map((spot, idx) => `
+      <li class="spot-item">
+        <span class="spot-num" style="background:${day.color}">${idx + 1}</span>
+        <div class="spot-content">
+          <div class="spot-name">${escapeHTML(spot.name)}</div>
+          <div class="spot-note">${escapeHTML(spot.note || '설명 없음')}</div>
+        </div>
+      </li>
+    `).join('');
+
+    card.innerHTML = `
+      <div class="day-card-header">
+        <div class="day-title-group">
+          <span class="day-date" style="background:${day.color}">${escapeHTML(day.dateStr)}</span>
+          <span class="day-subtitle">${escapeHTML(day.subtitle)}</span>
+        </div>
+        <span class="clay-badge ${day.badgeClass}">${escapeHTML(day.tourTime || '일정')}</span>
+      </div>
+      <ul class="spot-list">
+        ${spotsListHtml}
+      </ul>
+      <div class="day-footer-tip">
+        <i class="fa-solid fa-circle-info" style="color:${day.color}"></i> ${escapeHTML(day.tip)}
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
 
 // 🌙 다크모드 제어
 function initDarkMode() {
@@ -441,6 +508,7 @@ function broadcastSyncToOtherWindows() {
 function renderAllViews() {
   renderHotelAndEmergencyDisplay();
   renderItinerarySidebar();
+  renderDrawerItineraryList(); // 📅 신규 전역 일정 드로어 갱신
   updateMapMarkersAndPolylines();
   renderChecklist();
   renderSettlementTable();
@@ -1001,6 +1069,7 @@ window.saveEditModal = function(e) {
 
     saveDataToStorage();
     renderItinerarySidebar();
+    renderDrawerItineraryList(); // 전역 드로어 갱신
     updateMapMarkersAndPolylines();
     closeEditModal();
   }
@@ -1012,6 +1081,7 @@ window.triggerDeleteDay = function() {
     itineraryData = itineraryData.filter(d => d.id !== dayId);
     saveDataToStorage();
     renderItinerarySidebar();
+    renderDrawerItineraryList(); // 전역 드로어 갱신
     updateMapMarkersAndPolylines();
     closeEditModal();
   }
@@ -1032,6 +1102,7 @@ window.triggerAddDay = function() {
   });
   saveDataToStorage();
   renderItinerarySidebar();
+  renderDrawerItineraryList(); // 전역 드로어 갱신
 };
 
 window.addChecklistItem = function(category) {
@@ -1655,6 +1726,7 @@ function updateMapMarkersAndPolylines() {
   }
 }
 
+/* 📍 [지도 & 동선] 탭 전용 사이드바 렌더링 (편집 버튼 포함) */
 function renderItinerarySidebar() {
   const container = document.getElementById('itineraryCardList');
   if (!container) return;

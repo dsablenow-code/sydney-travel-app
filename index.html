@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 다크모드 & 메모 우선배치 & 인당지출 1*1 분리 버전 (v=1.5.0) -->
-  <link rel="stylesheet" href="styles.css?v=1.5.0">
+  <!-- 전역 일정 사이드 토글바 탑재 버전 (v=1.6.0) -->
+  <link rel="stylesheet" href="styles.css?v=1.6.0">
 </head>
 <body>
 
@@ -60,6 +60,27 @@
       </nav>
     </div>
   </header>
+
+  <!-- ================= ================= =================
+       📅 전역 플로팅 일정 요약 토글 버튼 & 슬라이딩 사이드 드로어 (모든 페이지 노출)
+       ================= ================= ================= -->
+  <button id="globalItineraryToggleBtn" class="global-itinerary-toggle-btn" onclick="toggleGlobalItineraryDrawer()" title="일정 요약 접기/펴기">
+    <i class="fa-solid fa-calendar-days"></i> <span>일정 요약</span>
+  </button>
+
+  <aside id="globalItineraryDrawer" class="global-itinerary-drawer">
+    <div class="drawer-header">
+      <h3><i class="fa-solid fa-calendar-days" style="color: var(--sydney-ocean);"></i> 8/19 ~ 8/24 연수 일정 요약</h3>
+      <button class="drawer-close-btn" onclick="closeGlobalItineraryDrawer()">&times;</button>
+    </div>
+    <div style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 12px; background: rgba(0, 128, 148, 0.08); padding: 8px 10px; border-radius: 8px; line-height: 1.35;">
+      💡 세부 일정 편집 및 장소 수정은 <b>[지도 & 동선]</b> 탭에서만 가능합니다.
+    </div>
+    <div id="drawerItineraryList" class="drawer-body">
+      <!-- JS에서 읽기 전용으로 생성 -->
+    </div>
+  </aside>
+  <div id="globalDrawerBackdrop" class="drawer-backdrop" onclick="closeGlobalItineraryDrawer()"></div>
 
   <!-- ================= ================= =================
        메인 컨테이너 (5대 탭)
@@ -128,7 +149,7 @@
 
         <div class="itinerary-sidebar">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <h3 style="font-weight: 800; font-size: 1.05rem;"><i class="fa-solid fa-calendar-days"></i> 일자별 일정 (8/19~8/24)</h3>
+            <h3 style="font-weight: 800; font-size: 1.05rem;"><i class="fa-solid fa-calendar-days"></i> 일자별 일정 (편집 가능)</h3>
             <button class="clay-btn clay-btn-primary" style="padding: 5px 12px; font-size: 0.78rem;" onclick="triggerAddDay()">
               <i class="fa-solid fa-plus"></i> 일정 추가
             </button>
@@ -158,7 +179,6 @@
           <ul id="listBefore" class="checklist-items-group" style="list-style: none; display: flex; flex-direction: column; gap: 8px;"></ul>
         </div>
 
-        <!-- 💡 2. 여행 중 확인 (텍스트 변경 요청 반영 완료) -->
         <div class="clay-card" style="border-top: 6px solid var(--aus-gold); margin-bottom:0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 style="font-size: 0.98rem; font-weight: 800; color: #B37D00;">
@@ -558,6 +578,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.5.0"></script>
+  <script src="app.js?v=1.6.0"></script>
 </body>
 </html>
