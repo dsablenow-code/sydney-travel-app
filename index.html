@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- 카드 필요없는 0원 무료 방안 A - 초경량 캔버스 및 공유 링크 0.01초 실시간 동기화 (v=1.6.8) -->
-  <link rel="stylesheet" href="styles.css?v=1.6.8">
+  <!-- IndexedDB 무제한 대용량 파일 스토리지 및 구글 클라우드 동기화 완비 (v=1.6.7) -->
+  <link rel="stylesheet" href="styles.css?v=1.6.7">
 </head>
 <body>
 
@@ -353,18 +353,13 @@
           </div>
         </div>
 
-        <!-- 💡 2. 서류 공유함 (구글드라이브/외부링크 0.01초 원터치 공유 탑재!) -->
+        <!-- 💡 2. 서류 공유함 (메모장 아래 배치) -->
         <div class="clay-card" style="margin-bottom: 0;">
           <div class="docs-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
             <h3 style="font-weight: 800; font-size: 1.1rem;"><i class="fa-solid fa-file-arrow-up"></i> 서류 공유함</h3>
-            <div style="display: flex; gap: 6px;">
-              <button class="clay-btn clay-btn-secondary" style="padding: 5px 10px; font-size: 0.76rem; border-color: var(--sydney-ocean); color: var(--sydney-ocean);" onclick="triggerAddDocLink()">
-                <i class="fa-solid fa-link"></i> 공유 링크/드라이브 추가
-              </button>
-              <button class="clay-btn clay-btn-primary" style="padding: 5px 10px; font-size: 0.76rem;" onclick="triggerDownloadAllDocs()">
-                <i class="fa-solid fa-file-zipper"></i> ZIP 모아받기
-              </button>
-            </div>
+            <button class="clay-btn clay-btn-primary" style="padding: 5px 10px; font-size: 0.76rem;" onclick="triggerDownloadAllDocs()">
+              <i class="fa-solid fa-file-zipper"></i> 현재 분류 ZIP 모아받기
+            </button>
           </div>
 
           <div style="display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; width: 100%;" id="docTagFilter">
@@ -379,7 +374,7 @@
           <div style="background: var(--input-bg); border: 2px dashed var(--input-border); padding: 16px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 14px; cursor: pointer;" id="dropZone" onclick="triggerDocUpload()">
             <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.8rem; color: var(--sydney-ocean);"></i>
             <p style="font-size: 0.85rem; font-weight: 700; margin-top: 4px; color: var(--text-primary);">여기를 클릭하여 서류 파일 추가하기</p>
-            <p style="font-size: 0.72rem; color: var(--text-muted);">PDF, JPG, PNG, DOCX, HWP 등 지원 (구글드라이브 링크도 상단 버튼으로 등록가능)</p>
+            <p style="font-size: 0.72rem; color: var(--text-muted);">PDF, JPG, PNG, DOCX, HWP 등 모든 서류 지원</p>
             <input type="file" id="fileInput" multiple style="display: none;" onchange="handleFileUpload(this.files)">
           </div>
 
@@ -582,6 +577,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.6.8"></script>
+  <script src="app.js?v=1.6.7"></script>
 </body>
 </html>
