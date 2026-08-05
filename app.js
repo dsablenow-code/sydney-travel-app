@@ -141,44 +141,84 @@ const defaultReportData = {
   topics: [
     {
       id: 'topic-1',
-      title: '주제 1 제목을 입력하세요',
-      places: [],
-      experiences: [],
-      results: [],
-      connections: []
+      title: '한방산업의 육성 사례분석 및 지역사회 접목 방안 도출',
+      places: [
+        '호주 시드니 로열 보태닉 가든 (Royal Botanic Garden Sydney)',
+        '블루 마운틴스 (Blue Mountains)'
+      ],
+      experiences: [
+        '로열 보태닉 가든: 약용 식물(Medicinal Plants) 구역 큐레이션 관찰 (효능·역사·활용법 교육 콘텐츠)',
+        '보태닉 가든 에듀테인먼트 체험 프로그램 (허브 추출 워크숍 등) 분석',
+        '블루 마운틴스: 에코 포인트 & 쓰리 시스터즈 트레킹 등 자연환경 기반 웰니스 힐링 코스 분석'
+      ],
+      results: [
+        '제천시의 한방 도시 브랜드 인프라 대비 체험형/교육형 큐레이션 콘텐츠 부재 진단',
+        '기존 전시 중심 시설(한방생명과학관 등)의 한계점 확인 (전체 관광객 대비 방문 비중 5% 불과)',
+        '자연경관 감상 위주에 편중된 제천 관광 상품의 고부가가치 웰니스 전환 필요성 도출'
+      ],
+      connections: [
+        '제천 한방엑스포공원 일대에 호주 모델을 벤치마킹한 \'제천 한방약초 테마가든\' 조성 및 디지털 도감 도입',
+        '월악산·청풍호 일대에 약초 채집 및 시음 등을 연계한 \'한방 웰니스 트레킹 코스\' 사계절 운영 프로그램 구축',
+        '지역 어르신 전통 지식 자원화를 위한 \'한방 해설사\' 일자리 창출 선순환 모델 기획',
+        '제천 약초거리에 호주 마켓 모델을 벤치마킹한 \'한방 파머스 마켓\' 정기 개최 제안'
+      ]
     },
     {
       id: 'topic-2',
-      title: '주제 2 제목을 입력하세요',
-      places: [],
-      experiences: [],
-      results: [],
-      connections: []
+      title: '호주 대학의 Wellness Hub 인프라 분석을 통한 세명대 한의과대학 맞춤형 학생 웰니스 시스템 구축 방안',
+      places: [
+        '시드니 대학교 (University of Sydney)',
+        'UNSW (뉴사우스웨일즈 대학교)'
+      ],
+      experiences: [
+        '시드니 대학교: CAPS 및 Health and Wellbeing Hub 운영 실태 및 공간 구성 분석',
+        '의대·보건계열 학생들의 번아웃 예방을 위한 전담 프로그램 벤치마킹',
+        'UNSW: 또래 상담원을 양성하는 Peer Support Network 위기 조기 감지 시스템 분석'
+      ],
+      results: [
+        '한국 대학생 우울 위험군(43.5%) 및 의대생 우울증군(42.4%) 등 번아웃 문제의 심각성 대조',
+        '세명대 한의과대학 6년제 긴 학업 기간 및 강도 대비 전문적인 학내 심리 웰니스 인프라 부족 진단',
+        '지리적 특성(낮은 접근성)에 따른 여가 부재와 한의학적 특화 웰니스 접목 부재 문제점 확인'
+      ],
+      connections: [
+        '세명대 한의과대학 내 한방 통합 심리이완 및 테라피 공간인 \'安神(안신) 힐링 센터\' 설립 제안',
+        '한의학과 고학년이 저학년을 체질별 생활습관 등으로 케어하는 \'한방 또래 상담 (Peer Support) 프로그램\' 구축',
+        '캠퍼스 유휴 녹지를 활용하여 하이드파크/보태닉 가든 스타일의 \'약초 힐링 가든(명상 산책로)\' 조성',
+        '세명대 한의과대학만의 차별화된 학생 복지 브랜드 수립 및 타 대학 의학계열 확산 모델 확보'
+      ]
     }
   ],
   pptSlides: [
-    { id: 's1', page: 1, title: '표지', content: '2026 호주 배낭연수 결과보고서' },
-    { id: 's2', page: 2, title: '목차', content: '' },
-    { id: 's3', page: 3, title: '연수 개요', content: '기간, 인원, 목적, 연수지' },
-    { id: 's4', page: 4, title: '연수 일정 총괄', content: '8/19~8/24 일정 요약' },
-    { id: 's5', page: 5, title: '주제 1 - 개요', content: '' },
-    { id: 's6', page: 6, title: '주제 1 - 연수 장소', content: '' },
-    { id: 's7', page: 7, title: '주제 1 - 체험 내용 (1)', content: '' },
-    { id: 's8', page: 8, title: '주제 1 - 체험 내용 (2)', content: '' },
-    { id: 's9', page: 9, title: '주제 1 - 도출 결과', content: '' },
-    { id: 's10', page: 10, title: '주제 1 - 제천시 연계 방안', content: '' },
-    { id: 's11', page: 11, title: '주제 2 - 개요', content: '' },
-    { id: 's12', page: 12, title: '주제 2 - 연수 장소', content: '' },
-    { id: 's13', page: 13, title: '주제 2 - 체험 내용 (1)', content: '' },
-    { id: 's14', page: 14, title: '주제 2 - 체험 내용 (2)', content: '' },
-    { id: 's15', page: 15, title: '주제 2 - 도출 결과', content: '' },
-    { id: 's16', page: 16, title: '주제 2 - 제천시 연계 방안', content: '' },
-    { id: 's17', page: 17, title: '종합 비교 분석', content: '' },
-    { id: 's18', page: 18, title: '연수 성과 요약', content: '' },
-    { id: 's19', page: 19, title: '향후 추진 계획', content: '' },
-    { id: 's20', page: 20, title: '예산 집행 현황', content: '' },
-    { id: 's21', page: 21, title: '기대 효과', content: '' },
-    { id: 's22', page: 22, title: 'Q&A / 감사 인사', content: '' }
+    { id: 's1', page: 1, title: '표지 및 발표 개요', content: '2026 호주 배낭연수 결과보고서 (제천시 & 세명대 웰니스 발전 방안)' },
+    { id: 's2', page: 2, title: '연수 목적 및 배경', content: '한방산업 활성화 및 한의과대학 선진 학생 웰니스 인프라 구축의 필요성' },
+    { id: 's3', page: 3, title: '연수단 구성 및 일정 총괄', content: '8/19 ~ 8/24 시드니 핵심 연수 장소 및 일정 경과 요약' },
+    { id: 's4', page: 4, title: '주제 1 - 제천시 한방 웰니스 관광 제언', content: '로열 보태닉 가든 및 블루마운틴 에코투어리즘 분석 개요' },
+    { id: 's5', page: 5, title: '로열 보태닉 가든 약용식물 구역 분석', content: '200년 역사, 8,900종 식물 중 약용 식물 특화 교육형 큐레이션 및 에듀테인먼트 콘텐츠' },
+    { id: 's6', page: 6, title: '호주 웰니스 관광 시장 동향', content: '글로벌 웰니스 시장 1조 달러 돌파 및 자연경관 힐링 코스탈 워크의 고부가가치 모델' },
+    { id: 's7', page: 7, title: '제천시 한방 관광의 현주소와 문제점', content: '단순 전시/축제 기간 편중, 사계절 상시 콘텐츠 부재, 방문객 비중 5% 한계 진단' },
+    { id: 's8', page: 8, title: '개선안 ① 제천 한방약초 테마가든 조성', content: '약초별 효능 해설판, QR코드 연동 AR 도감 등 MZ 친화적 콘텐츠 제안' },
+    { id: 's9', page: 9, title: '개선안 ② 한방 웰니스 트레킹 코스 개발', content: '월악산·청풍호 코스에 약초 채집, 약초차 시음, 뜸 체험 연계' },
+    { id: 's10', page: 10, title: '개선안 ③ 고령층 연계 한방 해설사 양성', content: '지역 어르신 전통 지식 보전 및 시니어 일자리 창출 상생 모델' },
+    { id: 's11', page: 11, title: '개선안 ④ 약초거리 한방 파머스 마켓', content: '패디스 마켓 벤치마킹, 주말 약초 직거래 및 수제 한방 코스메틱 마켓 정기 개최' },
+    { id: 's12', page: 12, title: '주제 1 기대효과 및 로드맵', content: '연간 방문객 확대 및 비축제 기간 사계절 고른 관광 수익 창출 효과' },
+    { id: 's13', page: 13, title: '주제 2 - 세명대 한의과대학 학생 웰니스 구축', content: '시드니 대학교 및 UNSW 웰니스 인프라 분석 개요' },
+    { id: 's14', page: 14, title: '시드니 대학교 CAPS 및 Wellness Hub 분석', content: '심리 상담, 마음챙김 워크숍, 보건계열 학생 번아웃 예방 전담 케어 시스템' },
+    { id: 's15', page: 15, title: 'UNSW Peer Support Network 분석', content: '또래 상담원 양성 및 정신건강 위기 조기 감지 자발적 돌봄 체계' },
+    { id: 's16', page: 16, title: '국내 대학생 및 의학계열 번아웃 실태', content: '우울 위험군 43.5%, 의대생 우울증 42.4% 등 세명대 한의과대학 맞춤 케어 필요성' },
+    { id: 's17', page: 17, title: '개선안 ① 학내 安神(안신) 힐링 센터 설립', content: '상담, 마음챙김 명상, 약차 테라피, 아로마 뜸, 지압 셀프케어 공간 마련' },
+    { id: 's18', page: 18, title: '개선안 ② 한방 또래 상담 프로그램 도입', content: '고학년생 멘토링, 체질 판별에 기초한 맞춤형 생활습관 건강 가이드 연계' },
+    { id: 's19', page: 19, title: '개선안 ③ 약초 힐링 캠퍼스 가든 조성', content: '캠퍼스 내 유휴 녹지를 활용한 명상 산책로 및 친환경 웰니스 휴식처 구축' },
+    { id: 's20', page: 20, title: '주제 2 기대효과 및 브랜드화', content: '학생 학업 스트레스 완화, 이탈율 감소 및 대학 복지 브랜드 우수 모델 확보' },
+    { id: 's21', page: 21, title: '제천시와 세명대의 한방 웰니스 상생 방안', content: '대학 연구 역량과 제천시 한방 가든 콘텐츠 연계 교류 협력 모델' },
+    { id: 's22', page: 22, title: '예산 계획 및 자원 조달 방안', content: '지자체 협력 예산 및 대학 지원 예산 구성안' },
+    { id: 's23', page: 23, title: '단기 / 중기 / 장기 추진 일정', content: '센터 설립, 프로그램 기획, 시범 운영 및 전체 확산 계획' },
+    { id: 's24', page: 24, title: '장애요인 및 대응 전략', content: '학생 참여율 제고 방안, 상담 전문성 및 비밀 보장 신뢰 구축 방안' },
+    { id: 's25', page: 25, title: '호주 사례 벤치마킹 시사점 종합', content: '자연·건강·교육의 융합과 자발적 또래 돌봄 문화의 현지 적용점' },
+    { id: 's26', page: 26, title: '연수 최종 성과 분석', content: '기관 공식 방문 분석, 관계자 인터뷰 핵심 요약 및 시너지 효과' },
+    { id: 's27', page: 27, title: '지역 보건 및 의료 복지 기여도', content: '제천시 한방 웰니스 관광 인지도 상승 및 웰니스 허브 시너지' },
+    { id: 's28', page: 28, title: '보고서 작성 및 AI 활용 계획', content: '수집 데이터를 기반으로 한 AI 고도화 보고서 및 PPT 최종 초안 구성 계획' },
+    { id: 's29', page: 29, title: '결론 및 제언', content: '한방 웰니스 패러다임 전환과 세명대-제천시 상생 발전의 비전 선포' },
+    { id: 's30', page: 30, title: 'Q&A 및 감사 인사', content: '질의응답 진행 및 발표 마무리' }
   ]
 };
 
@@ -1467,20 +1507,38 @@ function renderReport() {
     if (!bodyEl) return;
     bodyEl.innerHTML = '';
 
+    // 2단 분할 그리드 생성
+    const grid = document.createElement('div');
+    grid.className = 'report-grid-2col';
+    grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; width: 100%;';
+
+    // 좌측 열: 호주 사례분석
+    const leftCol = document.createElement('div');
+    leftCol.style.cssText = 'display: flex; flex-direction: column; gap: 12px; background: rgba(0, 128, 148, 0.04); padding: 12px; border-radius: 12px; border: 1px solid rgba(0, 128, 148, 0.1);';
+    leftCol.innerHTML = `<h4 style="margin: 0 0 6px 0; font-size: 0.9rem; font-weight: 800; color: var(--sydney-ocean);"><i class="fa-solid fa-earth-oceania"></i> 🇦🇺 호주 선진 사례분석</h4>`;
+
+    // 우측 열: 접목 및 결과 도출
+    const rightCol = document.createElement('div');
+    rightCol.style.cssText = 'display: flex; flex-direction: column; gap: 12px; background: rgba(229, 81, 0, 0.04); padding: 12px; border-radius: 12px; border: 1px solid rgba(229, 81, 0, 0.1);';
+    const isTopic1 = topic.id === 'topic-1';
+    const targetLabel = isTopic1 ? '제천시' : '세명대';
+    const targetColor = isTopic1 ? 'var(--uluru-red)' : 'var(--eucalyptus-green)';
+    rightCol.innerHTML = `<h4 style="margin: 0 0 6px 0; font-size: 0.9rem; font-weight: 800; color: ${targetColor};"><i class="fa-solid fa-house-medical"></i> 🇰🇷 ${targetLabel} 접목 및 결과 도출</h4>`;
+
     ['places', 'experiences', 'results', 'connections'].forEach(field => {
       const meta = reportFieldLabels[field];
       const section = document.createElement('div');
-      section.style.cssText = 'margin-bottom: 14px; background: var(--input-bg); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);';
+      section.style.cssText = 'background: var(--card-bg); padding: 10px 12px; border-radius: var(--radius-md); box-shadow: var(--clay-shadow-pressed);';
 
       const items = topic[field] || [];
       const itemsHtml = items.map((item, idx) => `
-        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: var(--card-bg); border-radius: 8px; box-shadow: var(--clay-shadow-pressed); font-size: 0.83rem;">
-          <span style="flex: 1; word-break: keep-all;">${escapeHTML(item)}</span>
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: var(--input-bg); border-radius: 8px; font-size: 0.82rem; margin-bottom: 4px; border: 1px solid var(--input-border); gap: 8px;">
+          <span style="flex: 1; word-break: keep-all; line-height: 1.35;">${escapeHTML(item)}</span>
           <div style="display: flex; gap: 4px; flex-shrink: 0;">
-            <button class="clay-btn clay-btn-secondary" style="padding: 2px 6px; font-size: 0.7rem;" onclick="editReportItem('${topic.id}', '${field}', ${idx})">
+            <button class="clay-btn clay-btn-secondary" style="padding: 2px 6px; font-size: 0.68rem;" onclick="editReportItem('${topic.id}', '${field}', ${idx})">
               <i class="fa-solid fa-pen"></i>
             </button>
-            <button class="clay-btn clay-btn-danger" style="padding: 2px 6px; font-size: 0.7rem;" onclick="deleteReportItem('${topic.id}', '${field}', ${idx})">
+            <button class="clay-btn clay-btn-danger" style="padding: 2px 6px; font-size: 0.68rem;" onclick="deleteReportItem('${topic.id}', '${field}', ${idx})">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -1488,19 +1546,27 @@ function renderReport() {
       `).join('');
 
       section.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 0.88rem; font-weight: 800; color: ${meta.color};">${meta.icon} ${meta.label}</span>
-          <button class="clay-btn clay-btn-secondary" style="padding: 3px 10px; font-size: 0.73rem;" onclick="addReportItem('${topic.id}', '${field}')">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 0.83rem; font-weight: 800; color: ${meta.color};">${meta.icon} ${meta.label}</span>
+          <button class="clay-btn clay-btn-secondary" style="padding: 2px 8px; font-size: 0.7rem;" onclick="addReportItem('${topic.id}', '${field}')">
             <i class="fa-solid fa-plus"></i> 추가
           </button>
         </div>
-        <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
-          ${itemsHtml || '<li style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 8px;">항목을 추가해주세요</li>'}
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          ${itemsHtml || '<li style="font-size: 0.78rem; color: var(--text-muted); text-align: center; padding: 8px;">항목이 없습니다</li>'}
         </ul>
       `;
 
-      bodyEl.appendChild(section);
+      if (field === 'places' || field === 'experiences') {
+        leftCol.appendChild(section);
+      } else {
+        rightCol.appendChild(section);
+      }
     });
+
+    grid.appendChild(leftCol);
+    grid.appendChild(rightCol);
+    bodyEl.appendChild(grid);
   });
 
   renderPptSlides();
@@ -1810,3 +1876,32 @@ function escapeHTML(str) {
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
   );
 }
+
+window.copyAiPrompt = function() {
+  const mdContent = buildReportMarkdown();
+  
+  const promptText = `너는 지자체(제천시) 및 대학(세명대)의 연수 성과 보고서를 전문적으로 집필하는 유능한 기획자이자 연구원이야.
+아래에 입력된 [2026 호주 배낭연수 결과 보고서 및 30p PPT 개요] 데이터를 바탕으로, 다음 지침을 엄격히 준수하여 30페이지 분량의 상세한 결과보고서 PPT 최종 기획안을 작성해줘.
+
+[작성 지침]
+1. 각 슬라이드(P.1 ~ P.30)의 주제와 논리적 흐름이 매끄럽게 연결되도록 구성할 것.
+2. 각 페이지마다 다음 세 요소를 반드시 포함할 것:
+   - 슬라이드 제목 (Slide Title)
+   - 슬라이드 시각적 레이아웃 구상 (Visual Concept & Layout)
+   - 상세 발표 대본 (Detailed Script) - 대본은 구체적이고 현실적인 공무원/대학 기획서 어조로 자세하게 작성할 것.
+3. 호주 현지 사례분석(보태닉 가든, 블루마운틴, 시드니대 CAPS)의 통계 수치 및 분석 결과와 제천시/세명대의 접목 방안이 유기적으로 매칭되도록 풍부한 살을 붙여 서술할 것.
+
+--------------------------------------------------
+[2026 호주 배낭연수 결과 보고서 데이터]
+--------------------------------------------------
+${mdContent}
+--------------------------------------------------`;
+
+  navigator.clipboard.writeText(promptText).then(() => {
+    alert('📋 AI 결과보고서 작성용 최적화 프롬프트가 클립보드에 복사되었습니다!\nChatGPT, Claude, Gemini 등에 붙여넣어 30p 분량의 발표 대본과 기획안을 즉시 집필해보세요.');
+  }).catch(err => {
+    console.error('클립보드 복사 실패:', err);
+    alert('복사에 실패했습니다. 콘솔 로그를 확인하거나 텍스트를 드래그하여 수동으로 복사해주세요.');
+  });
+};
+
