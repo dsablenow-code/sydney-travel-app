@@ -8,8 +8,8 @@
   <!-- Google Fonts & Leaflet CSS & FontAwesome Icons -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- IndexedDB 무제한 대용량 파일 스토리지 및 구글 클라우드 동기화 완비 (v=1.6.7) -->
-  <link rel="stylesheet" href="styles.css?v=1.6.7">
+  <!-- IndexedDB 무제한 대용량 파일 스토리지 및 구글 클라우드 동기화 완비 (v=1.7.0 결과보고서 탭 탑재) -->
+  <link rel="stylesheet" href="styles.css?v=1.7.0">
 </head>
 <body>
 
@@ -54,8 +54,8 @@
         <button class="clay-nav-btn" data-tab="tab-docs">
           <i class="fa-solid fa-folder-open"></i> <span>서류 & 메모</span>
         </button>
-        <button class="clay-nav-btn" data-tab="tab-photos">
-          <i class="fa-solid fa-images"></i> <span>사진 갤러리</span>
+        <button class="clay-nav-btn" data-tab="tab-report">
+          <i class="fa-solid fa-file-powerpoint"></i> <span>결과 보고서</span>
         </button>
       </nav>
     </div>
@@ -386,29 +386,70 @@
       </div>
     </section>
 
-    <!-- 📸 [탭 5] 여행 사진 공유 갤러리 -->
-    <section id="tab-photos" class="tab-content">
-      <div class="clay-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+    <!-- 📊 [탭 5] 연수 결과 보고서 -->
+    <section id="tab-report" class="tab-content">
+      <div class="clay-card" style="margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
           <div>
-            <h2 style="font-weight: 800; font-size: 1.2rem;">시드니 여행 갤러리 📸</h2>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">사진을 클릭하면 크게 보실 수 있으며 다양한 이모지로 남겨보세요!</p>
+            <h2 style="font-weight: 800; font-size: 1.2rem;">📊 2026 호주 배낭연수 결과 보고서</h2>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">주제별 연수 결과를 정리하고 30p PPT 개요를 작성하세요. md/txt 파일로 내보내기 가능합니다.</p>
           </div>
-          <button class="clay-btn clay-btn-primary" onclick="triggerPhotoUpload()"><i class="fa-solid fa-camera"></i> 사진 업로드</button>
-          <input type="file" id="photoInput" accept="image/*" style="display: none;" onchange="handlePhotoUpload(this.files)">
+          <div style="display: flex; gap: 6px;">
+            <button class="clay-btn clay-btn-secondary" onclick="exportReportAsMd()">
+              <i class="fa-solid fa-file-lines"></i> MD 내보내기
+            </button>
+            <button class="clay-btn clay-btn-primary" onclick="exportReportAsTxt()">
+              <i class="fa-solid fa-file-export"></i> TXT 내보내기
+            </button>
+          </div>
         </div>
+      </div>
 
-        <div style="display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px;" id="photoCategoryFilter">
-          <button class="clay-badge badge-blue photo-tag-chip active" data-filter="all" onclick="filterPhotoTag('all', this)">전체 사진</button>
-          <button class="clay-badge badge-purple photo-tag-chip" data-filter="8/19" onclick="filterPhotoTag('8/19', this)">8/19 도착</button>
-          <button class="clay-badge badge-blue photo-tag-chip" data-filter="8/20" onclick="filterPhotoTag('8/20', this)">8/20 블루마운틴</button>
-          <button class="clay-badge badge-green photo-tag-chip" data-filter="8/21" onclick="filterPhotoTag('8/21', this)">8/21 맨리서핑</button>
-          <button class="clay-badge badge-orange photo-tag-chip" data-filter="8/22" onclick="filterPhotoTag('8/22', this)">8/22 하버&록스</button>
-          <button class="clay-badge badge-red photo-tag-chip" data-filter="8/23" onclick="filterPhotoTag('8/23', this)">8/23 오페라하우스</button>
-          <button class="clay-badge badge-dark photo-tag-chip" data-filter="8/24" onclick="filterPhotoTag('8/24', this)">8/24 복귀</button>
+      <!-- 주제 1 카드 -->
+      <div class="clay-card" id="topicCard-topic-1" style="border-top: 6px solid var(--sydney-ocean); margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <h3 style="font-weight: 800; font-size: 1.1rem; color: var(--sydney-ocean);">
+            <i class="fa-solid fa-bookmark"></i> 주제 1
+          </h3>
+          <button class="clay-btn clay-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="editTopicTitle('topic-1')">
+            <i class="fa-solid fa-pen"></i> 제목 수정
+          </button>
         </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+          <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">제목:</span>
+          <span id="topicTitle-topic-1" style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary);">주제 1 제목을 입력하세요</span>
+        </div>
+        <div id="topicBody-topic-1"></div>
+      </div>
 
-        <div id="photoGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px;"></div>
+      <!-- 주제 2 카드 -->
+      <div class="clay-card" id="topicCard-topic-2" style="border-top: 6px solid var(--eucalyptus-green); margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <h3 style="font-weight: 800; font-size: 1.1rem; color: var(--eucalyptus-green);">
+            <i class="fa-solid fa-bookmark"></i> 주제 2
+          </h3>
+          <button class="clay-btn clay-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="editTopicTitle('topic-2')">
+            <i class="fa-solid fa-pen"></i> 제목 수정
+          </button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+          <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">제목:</span>
+          <span id="topicTitle-topic-2" style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary);">주제 2 제목을 입력하세요</span>
+        </div>
+        <div id="topicBody-topic-2"></div>
+      </div>
+
+      <!-- PPT 개요 영역 -->
+      <div class="clay-card" style="border-top: 6px solid var(--uluru-red);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+          <h3 style="font-weight: 800; font-size: 1.1rem; color: var(--uluru-red);">
+            <i class="fa-solid fa-file-powerpoint"></i> PPT 결과보고서 개요 (30p 내외)
+          </h3>
+          <button class="clay-btn clay-btn-primary" style="padding: 5px 12px; font-size: 0.78rem;" onclick="addPptSlide()">
+            <i class="fa-solid fa-plus"></i> 슬라이드 추가
+          </button>
+        </div>
+        <div id="pptSlideList" style="display: flex; flex-direction: column; gap: 8px;"></div>
       </div>
     </section>
 
@@ -520,27 +561,7 @@
     </div>
   </div>
 
-  <!-- 사진 고화질 확대 라이트박스 팝업 모달 -->
-  <div class="modal-overlay" id="photoLightboxModal" style="z-index: 3000;">
-    <div class="clay-modal" style="max-width: 720px; text-align: center; padding: 18px; position: relative;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h3 class="modal-title" id="lightboxTitle" style="font-size: 1rem;">사진 상세보기</h3>
-        <button class="close-btn" onclick="closePhotoLightbox()" style="font-size: 1.6rem; cursor: pointer; padding: 2px 8px;">&times;</button>
-      </div>
-      <div style="max-height: 400px; overflow: hidden; border-radius: var(--radius-lg); margin-bottom: 14px; background: #000; display: flex; align-items: center; justify-content: center;">
-        <img id="lightboxImg" src="" style="max-width: 100%; max-height: 400px; object-fit: contain;">
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <span class="clay-badge badge-blue" id="lightboxCategory">8/23 오페라하우스</span>
-        <div style="display: flex; gap: 8px;">
-          <button class="clay-btn clay-btn-primary" onclick="downloadCurrentLightboxPhoto()">
-            <i class="fa-solid fa-download"></i> 이 사진 다운로드
-          </button>
-          <button class="clay-btn clay-btn-secondary" onclick="closePhotoLightbox()">닫기</button>
-        </div>
-      </div>
-    </div>
-  </div>
+
 
   <!-- [구글 클라우드 싱크 연동 모달] -->
   <div class="modal-overlay" id="cloudSyncModalOverlay" style="z-index: 3200;">
@@ -577,6 +598,6 @@
 
   <!-- Leaflet JS & App JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=1.6.7"></script>
+  <script src="app.js?v=1.7.0"></script>
 </body>
 </html>

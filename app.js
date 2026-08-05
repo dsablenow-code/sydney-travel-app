@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.7
-   (IndexedDB 대용량 스토리지 엔진 탑재 - 5MB 제한 100% 원천 해결 & 실시간 동기화 완비)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.7.0
+   (결과 보고서 탭 탑재 & md/txt 내보내기 & 정산서 지원금 계산 수정)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -137,12 +137,50 @@ const defaultSharedFiles = [
   { id: 'f3', name: '시드니_중앙역_호텔예약확인서.txt', tag: '항공숙박', size: '455 KB', date: '06.11', content: '시드니 중앙역 인근 호텔 7박 예약 확약서입니다.' }
 ];
 
-const defaultPhotos = [
-  { id: 'p1', src: 'https://images.unsplash.com/photo-1624138784614-87fd1b6528f8?auto=format&fit=crop&w=600&q=80', title: '오페라하우스 전경', category: '8/23', heart: 5, thumb: 3, wow: 2, party: 4 },
-  { id: 'p2', src: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80', title: '하버브릿지 석양', category: '8/22', heart: 8, thumb: 6, wow: 5, party: 3 },
-  { id: 'p3', src: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?auto=format&fit=crop&w=600&q=80', title: '본다이비치 해변', category: '8/23', heart: 6, thumb: 4, wow: 3, party: 2 },
-  { id: 'p4', src: 'https://images.unsplash.com/photo-1549180030-48bf079fb38a?auto=format&fit=crop&w=600&q=80', title: '시드니 공항 귀국길', category: '8/24', heart: 3, thumb: 2, wow: 1, party: 5 }
-];
+const defaultReportData = {
+  topics: [
+    {
+      id: 'topic-1',
+      title: '주제 1 제목을 입력하세요',
+      places: [],
+      experiences: [],
+      results: [],
+      connections: []
+    },
+    {
+      id: 'topic-2',
+      title: '주제 2 제목을 입력하세요',
+      places: [],
+      experiences: [],
+      results: [],
+      connections: []
+    }
+  ],
+  pptSlides: [
+    { id: 's1', page: 1, title: '표지', content: '2026 호주 배낭연수 결과보고서' },
+    { id: 's2', page: 2, title: '목차', content: '' },
+    { id: 's3', page: 3, title: '연수 개요', content: '기간, 인원, 목적, 연수지' },
+    { id: 's4', page: 4, title: '연수 일정 총괄', content: '8/19~8/24 일정 요약' },
+    { id: 's5', page: 5, title: '주제 1 - 개요', content: '' },
+    { id: 's6', page: 6, title: '주제 1 - 연수 장소', content: '' },
+    { id: 's7', page: 7, title: '주제 1 - 체험 내용 (1)', content: '' },
+    { id: 's8', page: 8, title: '주제 1 - 체험 내용 (2)', content: '' },
+    { id: 's9', page: 9, title: '주제 1 - 도출 결과', content: '' },
+    { id: 's10', page: 10, title: '주제 1 - 제천시 연계 방안', content: '' },
+    { id: 's11', page: 11, title: '주제 2 - 개요', content: '' },
+    { id: 's12', page: 12, title: '주제 2 - 연수 장소', content: '' },
+    { id: 's13', page: 13, title: '주제 2 - 체험 내용 (1)', content: '' },
+    { id: 's14', page: 14, title: '주제 2 - 체험 내용 (2)', content: '' },
+    { id: 's15', page: 15, title: '주제 2 - 도출 결과', content: '' },
+    { id: 's16', page: 16, title: '주제 2 - 제천시 연계 방안', content: '' },
+    { id: 's17', page: 17, title: '종합 비교 분석', content: '' },
+    { id: 's18', page: 18, title: '연수 성과 요약', content: '' },
+    { id: 's19', page: 19, title: '향후 추진 계획', content: '' },
+    { id: 's20', page: 20, title: '예산 집행 현황', content: '' },
+    { id: 's21', page: 21, title: '기대 효과', content: '' },
+    { id: 's22', page: 22, title: 'Q&A / 감사 인사', content: '' }
+  ]
+};
 
 const STORAGE_KEYS = {
   ITINERARY: 'sydney_master_itinerary_v1',
@@ -152,7 +190,7 @@ const STORAGE_KEYS = {
   HOTEL: 'sydney_master_hotel_v1',
   EMERGENCY: 'sydney_master_emergency_v1',
   FILES: 'sydney_master_files_v1',
-  PHOTOS: 'sydney_master_photos_v1',
+  REPORT: 'sydney_master_report_v1',
   MEMOS: 'sydney_master_memos_v1',
   EXCHANGE_RATE: 'sydney_master_exchange_rate_v1',
   FIREBASE_CONFIG: 'sydney_master_fb_config_v1'
@@ -166,11 +204,9 @@ let checklistData = {};
 let hotelData = {};
 let emergencyData = {};
 let memoData = [];
-let photoData = [];
+let reportData = {};
 let sharedFilesData = [];
 let currentFileFilter = 'all';
-let currentPhotoFilter = 'all';
-let currentActivePhotoId = null;
 let mapInstance = null;
 
 let dbInstance = null;
@@ -182,70 +218,8 @@ let syncBroadcastChannel = null;
 let undoStack = [];
 let redoStack = [];
 
-/* ================= ================= =================
-   💾 [IndexedDB 대용량 전용 스토리지 코어 엔진 탑재]
-   - LocalStorage 5MB 한계를 100% 원천 극복 (GB 단위 저장이능)
-   ================= ================= ================= */
-let idbDatabase = null;
+document.addEventListener('DOMContentLoaded', () => {
 
-function initIndexedDBEngine() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('sydney_travel_db', 1);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('files_blob')) {
-        db.createObjectStore('files_blob', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('photos_blob')) {
-        db.createObjectStore('photos_blob', { keyPath: 'id' });
-      }
-    };
-
-    request.onsuccess = (event) => {
-      idbDatabase = event.target.result;
-      resolve(idbDatabase);
-    };
-
-    request.onerror = (event) => {
-      console.warn('IndexedDB 초기화 실패:', event.target.error);
-      resolve(null);
-    };
-  });
-}
-
-function saveBlobToIndexedDB(storeName, item) {
-  if (!idbDatabase) return Promise.resolve();
-  return new Promise((resolve) => {
-    try {
-      const tx = idbDatabase.transaction(storeName, 'readwrite');
-      const store = tx.objectStore(storeName);
-      store.put(item);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => resolve(false);
-    } catch(e) {
-      resolve(false);
-    }
-  });
-}
-
-function getBlobFromIndexedDB(storeName, id) {
-  if (!idbDatabase) return Promise.resolve(null);
-  return new Promise((resolve) => {
-    try {
-      const tx = idbDatabase.transaction(storeName, 'readonly');
-      const store = tx.objectStore(storeName);
-      const req = store.get(id);
-      req.onsuccess = () => resolve(req.result ? req.result.content : null);
-      req.onerror = () => resolve(null);
-    } catch(e) {
-      resolve(null);
-    }
-  });
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-  await initIndexedDBEngine();
   initDarkMode();
   loadDataFromStorage();
   initTabNavigation();
@@ -526,8 +500,8 @@ function loadDataFromStorage() {
   const savedFiles = getItemWithFallback(STORAGE_KEYS.FILES, 'sydney_files');
   sharedFilesData = savedFiles ? JSON.parse(savedFiles) : [...defaultSharedFiles];
 
-  const savedPhotos = getItemWithFallback(STORAGE_KEYS.PHOTOS, 'sydney_photos');
-  photoData = savedPhotos ? JSON.parse(savedPhotos) : [...defaultPhotos];
+  const savedReport = getItemWithFallback(STORAGE_KEYS.REPORT, 'sydney_report');
+  reportData = savedReport ? JSON.parse(savedReport) : JSON.parse(JSON.stringify(defaultReportData));
 
   const savedMemos = getItemWithFallback(STORAGE_KEYS.MEMOS, 'sydney_memos');
   memoData = savedMemos ? JSON.parse(savedMemos) : [
@@ -539,7 +513,7 @@ function loadDataFromStorage() {
   renderHotelAndEmergencyDisplay();
   renderSharedFiles();
   renderMemos();
-  renderPhotos();
+  renderReport();
 }
 
 /* 💾 [LocalStorage 5MB 쿼터 초과 방지 & IndexedDB 세이프가드 파이프라인] */
@@ -560,16 +534,7 @@ function saveDataToStorage(skipUndoPush = false) {
     content: (f.content && f.content.length < 50000) ? f.content : 'INDEXED_DB'
   }));
 
-  const metaOnlyPhotos = photoData.map(p => ({
-    id: p.id,
-    src: (p.src && p.src.length < 200000) ? p.src : 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80',
-    title: p.title,
-    category: p.category,
-    heart: p.heart || 0,
-    thumb: p.thumb || 0,
-    wow: p.wow || 0,
-    party: p.party || 0
-  }));
+  
 
   try {
     localStorage.setItem(STORAGE_KEYS.ITINERARY, JSON.stringify(itineraryData));
@@ -580,7 +545,7 @@ function saveDataToStorage(skipUndoPush = false) {
     localStorage.setItem(STORAGE_KEYS.HOTEL, JSON.stringify(hotelData));
     localStorage.setItem(STORAGE_KEYS.EMERGENCY, JSON.stringify(emergencyData));
     localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify(metaOnlyFiles));
-    localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(metaOnlyPhotos));
+    localStorage.setItem(STORAGE_KEYS.REPORT, JSON.stringify(reportData));
     localStorage.setItem(STORAGE_KEYS.MEMOS, JSON.stringify(memoData));
   } catch (e) {
     console.warn('LocalStorage 세이프가드 작동:', e);
@@ -634,7 +599,7 @@ function renderAllViews() {
   renderSettlementTable();
   renderMemos();
   renderSharedFiles();
-  renderPhotos();
+  renderReport();
 }
 
 function showSyncFlashToast(msg) {
@@ -705,15 +670,7 @@ function pushDataToFirebaseCloud() {
     date: f.date
   }));
 
-  const sanitizedPhotos = photoData.map(p => ({
-    id: p.id,
-    title: p.title,
-    category: p.category,
-    heart: p.heart || 0,
-    thumb: p.thumb || 0,
-    wow: p.wow || 0,
-    party: p.party || 0
-  }));
+  
 
   const payload = {
     itinerary: itineraryData,
@@ -725,7 +682,7 @@ function pushDataToFirebaseCloud() {
     emergency: emergencyData,
     memos: memoData,
     files: sanitizedFiles,
-    photos: sanitizedPhotos,
+    report: reportData,
     updatedAt: Date.now()
   };
 
@@ -789,16 +746,7 @@ function applyRemoteCloudData(data) {
     });
   }
 
-  if (data.photos && Array.isArray(data.photos)) {
-    const photoMap = new Map(photoData.map(p => [p.id, p]));
-    photoData = data.photos.map(rp => {
-      const existing = photoMap.get(rp.id);
-      return {
-        ...rp,
-        src: existing ? existing.src : 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80'
-      };
-    });
-  }
+  if (data.report) reportData = data.report;
 
   saveDataToStorage();
   renderAllViews();
@@ -1230,7 +1178,7 @@ function renderSettlementTable() {
   tbody.innerHTML = '';
 
   let personalTotalExpense = 0;
-  let settledGrantExpenseTotal = 0;
+  let grantExpenseTotal = 0;
   let settledPersonalExpenseTotal = 0;
 
   const sortedSettlements = sortSettlementData(settlementData);
@@ -1242,9 +1190,7 @@ function renderSettlementTable() {
     const isSettled = typeof row.isSettled === 'boolean' ? row.isSettled : isGrant;
 
     if (isGrant) {
-      if (isSettled) {
-        settledGrantExpenseTotal += krwVal;
-      }
+      grantExpenseTotal += krwVal;
     } else {
       personalTotalExpense += krwVal;
       if (isSettled) {
@@ -1302,7 +1248,7 @@ function renderSettlementTable() {
   const rateDisplayEl = document.getElementById('displayGlobalRate');
   if (rateDisplayEl) rateDisplayEl.innerText = `1 AUD = ₩ ${globalExchangeRate.toLocaleString()}`;
 
-  const grantBalance = grantAmount - settledGrantExpenseTotal;
+  const grantBalance = grantAmount - grantExpenseTotal;
   let personalBalance = personalTotalExpense - settledPersonalExpenseTotal;
 
   if (grantBalance < 0) {
@@ -1322,7 +1268,7 @@ function renderSettlementTable() {
 
   document.getElementById('summaryGrant').innerText = `₩ ${grantAmount.toLocaleString()}`;
   document.getElementById('summaryPersonalTotalExpense').innerText = `₩ ${personalTotalExpense.toLocaleString()}`;
-  document.getElementById('summaryGrantExpense').innerText = `₩ ${settledGrantExpenseTotal.toLocaleString()}`;
+  document.getElementById('summaryGrantExpense').innerText = `₩ ${grantExpenseTotal.toLocaleString()}`;
   document.getElementById('summaryPersonalExpense').innerText = `₩ ${settledPersonalExpenseTotal.toLocaleString()}`;
   
   document.getElementById('summaryGrantBalance').innerText = `₩ ${grantBalance.toLocaleString()}`;
@@ -1503,194 +1449,224 @@ window.deleteMemo = function(id) {
   }
 };
 
-window.triggerPhotoUpload = function() {
-  const photoInput = document.getElementById('photoInput');
-  if (photoInput) photoInput.click();
+/* ========== 결과 보고서 탭 ========== */
+
+const reportFieldLabels = {
+  places: { icon: '🏢', label: '연수 장소', color: 'var(--sydney-ocean)' },
+  experiences: { icon: '📝', label: '체험 내용', color: 'var(--aus-gold)' },
+  results: { icon: '🎯', label: '도출 결과', color: 'var(--uluru-red)' },
+  connections: { icon: '🏛️', label: '제천시 연계 방안', color: 'var(--eucalyptus-green)' }
 };
 
-function compressImage(dataUrl, maxWidth, callback) {
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    let width = img.width;
-    let height = img.height;
+function renderReport() {
+  reportData.topics.forEach(topic => {
+    const titleEl = document.getElementById(`topicTitle-${topic.id}`);
+    if (titleEl) titleEl.innerText = topic.title;
 
-    if (width > maxWidth) {
-      height = Math.round((height * maxWidth) / width);
-      width = maxWidth;
-    }
+    const bodyEl = document.getElementById(`topicBody-${topic.id}`);
+    if (!bodyEl) return;
+    bodyEl.innerHTML = '';
 
-    canvas.width = width;
-    canvas.height = height;
+    ['places', 'experiences', 'results', 'connections'].forEach(field => {
+      const meta = reportFieldLabels[field];
+      const section = document.createElement('div');
+      section.style.cssText = 'margin-bottom: 14px; background: var(--input-bg); padding: 12px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);';
 
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, width, height);
+      const items = topic[field] || [];
+      const itemsHtml = items.map((item, idx) => `
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: var(--card-bg); border-radius: 8px; box-shadow: var(--clay-shadow-pressed); font-size: 0.83rem;">
+          <span style="flex: 1; word-break: keep-all;">${escapeHTML(item)}</span>
+          <div style="display: flex; gap: 4px; flex-shrink: 0;">
+            <button class="clay-btn clay-btn-secondary" style="padding: 2px 6px; font-size: 0.7rem;" onclick="editReportItem('${topic.id}', '${field}', ${idx})">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="clay-btn clay-btn-danger" style="padding: 2px 6px; font-size: 0.7rem;" onclick="deleteReportItem('${topic.id}', '${field}', ${idx})">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </li>
+      `).join('');
 
-    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-    callback(compressedDataUrl);
-  };
-  img.src = dataUrl;
+      section.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 0.88rem; font-weight: 800; color: ${meta.color};">${meta.icon} ${meta.label}</span>
+          <button class="clay-btn clay-btn-secondary" style="padding: 3px 10px; font-size: 0.73rem;" onclick="addReportItem('${topic.id}', '${field}')">
+            <i class="fa-solid fa-plus"></i> 추가
+          </button>
+        </div>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
+          ${itemsHtml || '<li style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 8px;">항목을 추가해주세요</li>'}
+        </ul>
+      `;
+
+      bodyEl.appendChild(section);
+    });
+  });
+
+  renderPptSlides();
 }
 
-/* 💡 IndexedDB 기반 무제한 사진 업로드 탑재 */
-window.handlePhotoUpload = function(files) {
-  if (!files || files.length === 0) return;
-  const file = files[0];
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    compressImage(event.target.result, 600, async (compressedSrc) => {
-      const photoId = 'p-' + Date.now();
-      const photoRecord = {
-        id: photoId,
-        src: compressedSrc,
-        title: file.name,
-        category: currentPhotoFilter !== 'all' ? currentPhotoFilter : '8/23',
-        heart: 1,
-        thumb: 0,
-        wow: 0,
-        party: 0
-      };
-
-      // IndexedDB에 사진 바이너리 안전 저장!
-      await saveBlobToIndexedDB('photos_blob', { id: photoId, content: compressedSrc });
-
-      photoData.push(photoRecord);
-      saveDataToStorage();
-      renderPhotos();
-      showSyncFlashToast('📸 사진이 IndexedDB 스토리지에 무제한 안심 저장되었습니다!');
-    });
-  };
-  reader.readAsDataURL(file);
+window.editTopicTitle = function(topicId) {
+  const topic = reportData.topics.find(t => t.id === topicId);
+  if (!topic) return;
+  const newTitle = prompt('주제 제목을 입력하세요:', topic.title);
+  if (newTitle !== null && newTitle.trim()) {
+    topic.title = newTitle.trim();
+    saveDataToStorage();
+    renderReport();
+  }
 };
 
-window.filterPhotoTag = function(filter, btnEl) {
-  currentPhotoFilter = filter;
-  const chips = document.querySelectorAll('#photoCategoryFilter .photo-tag-chip');
-  chips.forEach(c => c.classList.remove('active'));
-  if (btnEl) btnEl.classList.add('active');
-  renderPhotos();
+window.addReportItem = function(topicId, field) {
+  const topic = reportData.topics.find(t => t.id === topicId);
+  if (!topic) return;
+  const label = reportFieldLabels[field]?.label || field;
+  const text = prompt(`[${label}] 항목을 입력하세요:`);
+  if (text && text.trim()) {
+    if (!topic[field]) topic[field] = [];
+    topic[field].push(text.trim());
+    saveDataToStorage();
+    renderReport();
+  }
 };
 
-function renderPhotos() {
-  const container = document.getElementById('photoGrid');
+window.editReportItem = function(topicId, field, idx) {
+  const topic = reportData.topics.find(t => t.id === topicId);
+  if (!topic || !topic[field]) return;
+  const newText = prompt('내용을 수정하세요:', topic[field][idx]);
+  if (newText !== null && newText.trim()) {
+    topic[field][idx] = newText.trim();
+    saveDataToStorage();
+    renderReport();
+  }
+};
+
+window.deleteReportItem = function(topicId, field, idx) {
+  const topic = reportData.topics.find(t => t.id === topicId);
+  if (!topic || !topic[field]) return;
+  if (confirm('이 항목을 삭제하시겠습니까?')) {
+    topic[field].splice(idx, 1);
+    saveDataToStorage();
+    renderReport();
+  }
+};
+
+function renderPptSlides() {
+  const container = document.getElementById('pptSlideList');
   if (!container) return;
   container.innerHTML = '';
 
-  const filteredPhotos = photoData.filter(p => {
-    if (currentPhotoFilter === 'all') return true;
-    return p.category === currentPhotoFilter;
-  });
+  const slides = reportData.pptSlides || [];
+  slides.forEach((slide, idx) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display: flex; align-items: flex-start; gap: 10px; background: var(--input-bg); padding: 10px 14px; border-radius: var(--radius-lg); box-shadow: var(--clay-shadow-pressed);';
 
-  if (filteredPhotos.length === 0) {
-    container.innerHTML = '<p style="font-size:0.88rem; color:var(--text-muted); grid-column: 1/-1; text-align:center; padding:24px;">이 카테고리에 해당하는 사진이 없습니다. [사진 업로드] 버튼을 눌러 사진을 추가해보세요!</p>';
-    return;
-  }
-
-  filteredPhotos.forEach(p => {
-    const card = document.createElement('div');
-    card.className = 'clay-card';
-    card.style.cssText = 'padding: 12px; cursor: pointer; transition: transform 0.2s ease;';
-
-    card.onclick = (e) => {
-      if (e.target.closest('button')) return;
-      openPhotoLightbox(p.id);
-    };
-
-    let categoryLabel = p.category === '8/23' ? '8/23 오페라하우스' : (p.category === '8/24' ? '8/24 복귀' : p.category);
-
-    card.innerHTML = `
-      <div style="overflow:hidden; border-radius:12px; margin-bottom:8px; height:140px; background:#000;">
-        <img id="img-${p.id}" src="${p.src}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+    div.innerHTML = `
+      <div style="min-width: 40px; text-align: center;">
+        <span style="display: inline-block; background: var(--uluru-red); color: white; width: 30px; height: 30px; line-height: 30px; border-radius: 50%; font-weight: 800; font-size: 0.78rem;">P.${slide.page}</span>
       </div>
-      <div style="font-weight:700; font-size:0.88rem; margin-bottom:6px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHTML(p.title)}</div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:4px;">
-        <span class="clay-badge badge-red" style="white-space:nowrap; flex-shrink:0; max-width:65%; text-overflow:ellipsis; overflow:hidden;">${categoryLabel}</span>
-        <button class="clay-btn clay-btn-primary" style="padding:3px 8px; font-size:0.72rem; white-space:nowrap; flex-shrink:0;" onclick="downloadPhotoFile('${p.id}')">
-          <i class="fa-solid fa-download"></i> 다운
-        </button>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+        <input type="text" value="${escapeHTML(slide.title)}" onchange="updatePptSlide(${idx}, 'title', this.value)" style="border: none; background: transparent; font-weight: 700; font-size: 0.88rem; outline: none; color: var(--text-primary); width: 100%;" placeholder="슬라이드 제목">
+        <textarea onchange="updatePptSlide(${idx}, 'content', this.value)" style="border: 1px solid var(--input-border); background: var(--card-bg); border-radius: 8px; padding: 6px 8px; font-size: 0.8rem; outline: none; color: var(--text-primary); resize: vertical; min-height: 36px; width: 100%;" placeholder="내용 메모 (AI 보고서 작성 시 활용)">${escapeHTML(slide.content)}</textarea>
       </div>
-      <div style="display:flex; justify-around; background:var(--input-bg); padding:4px; border-radius:8px; gap:2px;">
-        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'heart')">❤️ ${p.heart || 0}</button>
-        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'thumb')">👍 ${p.thumb || 0}</button>
-        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'wow')">😮 ${p.wow || 0}</button>
-        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'party')">🎉 ${p.party || 0}</button>
-      </div>
+      <button class="clay-btn clay-btn-danger" style="padding: 3px 8px; font-size: 0.72rem; flex-shrink: 0; margin-top: 4px;" onclick="deletePptSlide(${idx})">
+        <i class="fa-solid fa-trash"></i>
+      </button>
     `;
 
-    container.appendChild(card);
-
-    // IndexedDB 비동기 복원
-    if (!p.src || p.src.includes('unsplash')) {
-      getBlobFromIndexedDB('photos_blob', p.id).then(blobData => {
-        if (blobData) {
-          p.src = blobData;
-          const imgEl = document.getElementById(`img-${p.id}`);
-          if (imgEl) imgEl.src = blobData;
-        }
-      });
-    }
+    container.appendChild(div);
   });
 }
 
-window.reactPhoto = function(id, type) {
-  const p = photoData.find(item => item.id === id);
-  if (p) {
-    if (!p[type]) p[type] = 0;
-    p[type]++;
+window.addPptSlide = function() {
+  const slides = reportData.pptSlides || [];
+  const nextPage = slides.length > 0 ? slides[slides.length - 1].page + 1 : 1;
+  slides.push({ id: 's-' + Date.now(), page: nextPage, title: '', content: '' });
+  reportData.pptSlides = slides;
+  saveDataToStorage();
+  renderPptSlides();
+};
+
+window.updatePptSlide = function(idx, field, value) {
+  if (reportData.pptSlides && reportData.pptSlides[idx]) {
+    reportData.pptSlides[idx][field] = value;
     saveDataToStorage();
-    renderPhotos();
   }
 };
 
-window.openPhotoLightbox = async function(id) {
-  const photo = photoData.find(p => p.id === id);
-  if (!photo) return;
-
-  currentActivePhotoId = id;
-  const overlay = document.getElementById('photoLightboxModal');
-  const imgEl = document.getElementById('lightboxImg');
-  const titleEl = document.getElementById('lightboxTitle');
-  const categoryEl = document.getElementById('lightboxCategory');
-
-  let imgSrc = photo.src;
-  if (!imgSrc || imgSrc.includes('unsplash')) {
-    const blobData = await getBlobFromIndexedDB('photos_blob', id);
-    if (blobData) imgSrc = blobData;
-  }
-
-  imgEl.src = imgSrc;
-  titleEl.innerText = photo.title || '사진 상세보기';
-  
-  let categoryLabel = photo.category === '8/23' ? '8/23 오페라하우스' : (photo.category === '8/24' ? '8/24 복귀' : photo.category);
-  categoryEl.innerText = categoryLabel;
-
-  overlay.classList.add('active');
-};
-
-window.closePhotoLightbox = function() {
-  const overlay = document.getElementById('photoLightboxModal');
-  if (overlay) overlay.classList.remove('active');
-};
-
-window.downloadCurrentLightboxPhoto = function() {
-  if (currentActivePhotoId) {
-    downloadPhotoFile(currentActivePhotoId);
+window.deletePptSlide = function(idx) {
+  if (confirm('이 슬라이드를 삭제하시겠습니까?')) {
+    reportData.pptSlides.splice(idx, 1);
+    reportData.pptSlides.forEach((s, i) => { s.page = i + 1; });
+    saveDataToStorage();
+    renderPptSlides();
   }
 };
 
-window.downloadPhotoFile = async function(id) {
-  const photo = photoData.find(p => p.id === id);
-  if (!photo) return;
+/* ========== md / txt 내보내기 ========== */
 
-  let imgSrc = photo.src;
-  if (!imgSrc || imgSrc.includes('unsplash')) {
-    const blobData = await getBlobFromIndexedDB('photos_blob', id);
-    if (blobData) imgSrc = blobData;
-  }
+function buildReportMarkdown() {
+  let md = '# 2026 호주 배낭연수 결과 보고서\\n\\n';
+  md += `- 연수 기간: 2026.08.19 ~ 08.24\\n`;
+  md += `- 연수지: 호주 시드니\\n\\n`;
+  md += '---\\n\\n';
 
+  reportData.topics.forEach((topic, tIdx) => {
+    md += `## ${tIdx + 1}. ${topic.title}\\n\\n`;
+
+    const fields = [
+      { key: 'places', label: '연수 장소' },
+      { key: 'experiences', label: '체험 내용' },
+      { key: 'results', label: '도출 결과' },
+      { key: 'connections', label: '제천시 연계 방안' }
+    ];
+
+    fields.forEach(f => {
+      md += `### ${f.label}\\n\\n`;
+      const items = topic[f.key] || [];
+      if (items.length === 0) {
+        md += '- (미입력)\\n';
+      } else {
+        items.forEach(item => { md += `- ${item}\\n`; });
+      }
+      md += '\\n';
+    });
+
+    md += '---\\n\\n';
+  });
+
+  md += '## PPT 결과보고서 개요\\n\\n';
+  md += '| 페이지 | 제목 | 내용 |\\n';
+  md += '|:---:|:---|:---|\\n';
+  (reportData.pptSlides || []).forEach(slide => {
+    md += `| P.${slide.page} | ${slide.title} | ${slide.content} |\\n`;
+  });
+
+  return md;
+}
+
+window.exportReportAsMd = function() {
+  const md = buildReportMarkdown();
+  const BOM = '\\uFEFF';
+  const blob = new Blob([BOM + md], { type: 'text/markdown;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href = imgSrc;
-  link.download = `시드니여행_${photo.title || '사진'}.jpg`;
+  link.href = url;
+  link.download = '2026_호주배낭연수_결과보고서.md';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+window.exportReportAsTxt = function() {
+  const md = buildReportMarkdown();
+  const plain = md.replace(/^#{1,3}\\s*/gm, '').replace(/\\|/g, '\\t').replace(/---/g, '').replace(/\\n{3,}/g, '\\n\\n');
+  const BOM = '\\uFEFF';
+  const blob = new Blob([BOM + plain], { type: 'text/plain;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = '2026_호주배낭연수_결과보고서.txt';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
