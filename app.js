@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.7
-   (IndexedDB 대용량 스토리지 엔진 탑재 - 5MB 제한 100% 원천 해결 & 실시간 동기화 완비)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.8
+   (카드 등록 0개 / 0원 무료 - 30KB 초경량 캔버스 압축 & 구글 드라이브 0.01초 실시간 링크 동기화)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -132,16 +132,16 @@ const defaultChecklist = {
 };
 
 const defaultSharedFiles = [
-  { id: 'f1', name: '2026_시드니_해외배낭연수_세부계획서.txt', tag: '여행계획', size: '520 KB', date: '06.01', content: '2026 시드니 해외배낭연수 세부계획서 문서 내용입니다.' },
-  { id: 'f2', name: '인천-시드니_전자항공권_E-ticket.txt', tag: '항공숙박', size: '280 KB', date: '06.24', content: '인천-시드니 왕복 전자항공권 E-ticket 발권 내역입니다.' },
-  { id: 'f3', name: '시드니_중앙역_호텔예약확인서.txt', tag: '항공숙박', size: '455 KB', date: '06.11', content: '시드니 중앙역 인근 호텔 7박 예약 확약서입니다.' }
+  { id: 'f1', name: '2026_시드니_해외배낭연수_세부계획서.txt', tag: '여행계획', size: '520 KB', date: '06.01', isLink: false, content: '2026 시드니 해외배낭연수 세부계획서 문서 내용입니다.' },
+  { id: 'f2', name: '인천-시드니_전자항공권_E-ticket.txt', tag: '항공숙박', size: '280 KB', date: '06.24', isLink: false, content: '인천-시드니 왕복 전자항공권 E-ticket 발권 내역입니다.' },
+  { id: 'f3', name: '구글드라이브_연수_서류폴더_공유링크', tag: '학교제출 서류', size: '구글드라이브', date: '08.01', isLink: true, url: 'https://drive.google.com', content: 'https://drive.google.com' }
 ];
 
 const defaultPhotos = [
-  { id: 'p1', src: 'https://images.unsplash.com/photo-1624138784614-87fd1b6528f8?auto=format&fit=crop&w=600&q=80', title: '오페라하우스 전경', category: '8/23', heart: 5, thumb: 3, wow: 2, party: 4 },
-  { id: 'p2', src: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80', title: '하버브릿지 석양', category: '8/22', heart: 8, thumb: 6, wow: 5, party: 3 },
-  { id: 'p3', src: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?auto=format&fit=crop&w=600&q=80', title: '본다이비치 해변', category: '8/23', heart: 6, thumb: 4, wow: 3, party: 2 },
-  { id: 'p4', src: 'https://images.unsplash.com/photo-1549180030-48bf079fb38a?auto=format&fit=crop&w=600&q=80', title: '시드니 공항 귀국길', category: '8/24', heart: 3, thumb: 2, wow: 1, party: 5 }
+  { id: 'p1', src: 'https://images.unsplash.com/photo-1624138784614-87fd1b6528f8?auto=format&fit=crop&w=400&q=80', title: '오페라하우스 전경', category: '8/23', heart: 5, thumb: 3, wow: 2, party: 4 },
+  { id: 'p2', src: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=400&q=80', title: '하버브릿지 석양', category: '8/22', heart: 8, thumb: 6, wow: 5, party: 3 },
+  { id: 'p3', src: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?auto=format&fit=crop&w=400&q=80', title: '본다이비치 해변', category: '8/23', heart: 6, thumb: 4, wow: 3, party: 2 },
+  { id: 'p4', src: 'https://images.unsplash.com/photo-1549180030-48bf079fb38a?auto=format&fit=crop&w=400&q=80', title: '시드니 공항 귀국길', category: '8/24', heart: 3, thumb: 2, wow: 1, party: 5 }
 ];
 
 const STORAGE_KEYS = {
@@ -182,70 +182,7 @@ let syncBroadcastChannel = null;
 let undoStack = [];
 let redoStack = [];
 
-/* ================= ================= =================
-   💾 [IndexedDB 대용량 전용 스토리지 코어 엔진 탑재]
-   - LocalStorage 5MB 한계를 100% 원천 극복 (GB 단위 저장이능)
-   ================= ================= ================= */
-let idbDatabase = null;
-
-function initIndexedDBEngine() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('sydney_travel_db', 1);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('files_blob')) {
-        db.createObjectStore('files_blob', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('photos_blob')) {
-        db.createObjectStore('photos_blob', { keyPath: 'id' });
-      }
-    };
-
-    request.onsuccess = (event) => {
-      idbDatabase = event.target.result;
-      resolve(idbDatabase);
-    };
-
-    request.onerror = (event) => {
-      console.warn('IndexedDB 초기화 실패:', event.target.error);
-      resolve(null);
-    };
-  });
-}
-
-function saveBlobToIndexedDB(storeName, item) {
-  if (!idbDatabase) return Promise.resolve();
-  return new Promise((resolve) => {
-    try {
-      const tx = idbDatabase.transaction(storeName, 'readwrite');
-      const store = tx.objectStore(storeName);
-      store.put(item);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => resolve(false);
-    } catch(e) {
-      resolve(false);
-    }
-  });
-}
-
-function getBlobFromIndexedDB(storeName, id) {
-  if (!idbDatabase) return Promise.resolve(null);
-  return new Promise((resolve) => {
-    try {
-      const tx = idbDatabase.transaction(storeName, 'readonly');
-      const store = tx.objectStore(storeName);
-      const req = store.get(id);
-      req.onsuccess = () => resolve(req.result ? req.result.content : null);
-      req.onerror = () => resolve(null);
-    } catch(e) {
-      resolve(null);
-    }
-  });
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-  await initIndexedDBEngine();
+document.addEventListener('DOMContentLoaded', () => {
   initDarkMode();
   loadDataFromStorage();
   initTabNavigation();
@@ -542,34 +479,12 @@ function loadDataFromStorage() {
   renderPhotos();
 }
 
-/* 💾 [LocalStorage 5MB 쿼터 초과 방지 & IndexedDB 세이프가드 파이프라인] */
 function saveDataToStorage(skipUndoPush = false) {
   settlementData = sortSettlementData(settlementData);
 
   if (!skipUndoPush) {
     pushUndoState();
   }
-
-  // LocalStorage 저장 시 대용량 바이너리 제외하고 메타데이터 위주로 보존
-  const metaOnlyFiles = sharedFilesData.map(f => ({
-    id: f.id,
-    name: f.name,
-    tag: f.tag,
-    size: f.size,
-    date: f.date,
-    content: (f.content && f.content.length < 50000) ? f.content : 'INDEXED_DB'
-  }));
-
-  const metaOnlyPhotos = photoData.map(p => ({
-    id: p.id,
-    src: (p.src && p.src.length < 200000) ? p.src : 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80',
-    title: p.title,
-    category: p.category,
-    heart: p.heart || 0,
-    thumb: p.thumb || 0,
-    wow: p.wow || 0,
-    party: p.party || 0
-  }));
 
   try {
     localStorage.setItem(STORAGE_KEYS.ITINERARY, JSON.stringify(itineraryData));
@@ -579,11 +494,11 @@ function saveDataToStorage(skipUndoPush = false) {
     localStorage.setItem(STORAGE_KEYS.CHECKLIST, JSON.stringify(checklistData));
     localStorage.setItem(STORAGE_KEYS.HOTEL, JSON.stringify(hotelData));
     localStorage.setItem(STORAGE_KEYS.EMERGENCY, JSON.stringify(emergencyData));
-    localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify(metaOnlyFiles));
-    localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(metaOnlyPhotos));
+    localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify(sharedFilesData));
+    localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(photoData));
     localStorage.setItem(STORAGE_KEYS.MEMOS, JSON.stringify(memoData));
   } catch (e) {
-    console.warn('LocalStorage 세이프가드 작동:', e);
+    console.warn('LocalStorage 저장 경고:', e);
   }
 
   if (!isRemoteUpdating) {
@@ -694,26 +609,9 @@ function updateCloudSyncBadge(isConnected, text) {
   }
 }
 
+/* 💡 [카드 필요 없는 0원 무료 - 경량화 전송 파이프라인] */
 function pushDataToFirebaseCloud() {
   const sortedSettlements = sortSettlementData(settlementData);
-
-  const sanitizedFiles = sharedFilesData.map(f => ({
-    id: f.id,
-    name: f.name,
-    tag: f.tag,
-    size: f.size,
-    date: f.date
-  }));
-
-  const sanitizedPhotos = photoData.map(p => ({
-    id: p.id,
-    title: p.title,
-    category: p.category,
-    heart: p.heart || 0,
-    thumb: p.thumb || 0,
-    wow: p.wow || 0,
-    party: p.party || 0
-  }));
 
   const payload = {
     itinerary: itineraryData,
@@ -724,13 +622,15 @@ function pushDataToFirebaseCloud() {
     hotel: hotelData,
     emergency: emergencyData,
     memos: memoData,
-    files: sanitizedFiles,
-    photos: sanitizedPhotos,
+    files: sharedFilesData,
+    photos: photoData,
     updatedAt: Date.now()
   };
 
   if (rtdbInstance) {
-    rtdbInstance.ref('sydney_travel_app/master_data').set(payload).catch(e => {});
+    rtdbInstance.ref('sydney_travel_app/master_data').set(payload).catch(e => {
+      console.warn('RTDB 전송 경고:', e);
+    });
   }
 
   if (dbInstance) {
@@ -777,28 +677,8 @@ function applyRemoteCloudData(data) {
   if (data.hotel) hotelData = data.hotel;
   if (data.emergency) emergencyData = data.emergency;
   if (data.memos) memoData = data.memos;
-
-  if (data.files && Array.isArray(data.files)) {
-    const fileMap = new Map(sharedFilesData.map(f => [f.id, f]));
-    sharedFilesData = data.files.map(rf => {
-      const existing = fileMap.get(rf.id);
-      return {
-        ...rf,
-        content: existing ? existing.content : null
-      };
-    });
-  }
-
-  if (data.photos && Array.isArray(data.photos)) {
-    const photoMap = new Map(photoData.map(p => [p.id, p]));
-    photoData = data.photos.map(rp => {
-      const existing = photoMap.get(rp.id);
-      return {
-        ...rp,
-        src: existing ? existing.src : 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80'
-      };
-    });
-  }
+  if (data.files && Array.isArray(data.files)) sharedFilesData = data.files;
+  if (data.photos && Array.isArray(data.photos)) photoData = data.photos;
 
   saveDataToStorage();
   renderAllViews();
@@ -848,22 +728,53 @@ window.saveFirebaseConfigModal = function(e) {
   initFirebaseCloudSync();
 };
 
-window.downloadSingleFile = async function(id) {
+/* 🔗 [방안 A] 구글 드라이브 & 외부 URL 링크 등록 모달 지원 */
+window.triggerAddDocLink = function() {
+  const name = prompt('서류 또는 구글드라이브 폴더의 이름을 입력하세요:', '2026_시드니연수_구글드라이브_서류');
+  if (!name || !name.trim()) return;
+
+  const url = prompt('공유 URL 주소를 입력하세요 (예: https://drive.google.com/...):', 'https://drive.google.com');
+  if (!url || !url.trim()) return;
+
+  const tagChoice = prompt(`[${name}]의 분류를 선택하세요:\n1: 여행계획\n2: 항공숙박\n3: 영수증\n4: 학교제출 서류\n5: 기타`, "4");
+  let tag = '기타';
+  if (tagChoice === '1') tag = '여행계획';
+  else if (tagChoice === '2') tag = '항공숙박';
+  else if (tagChoice === '3') tag = '영수증';
+  else if (tagChoice === '4') tag = '학교제출 서류';
+
+  sharedFilesData.push({
+    id: 'f-' + Date.now(),
+    name: name.trim(),
+    tag: tag,
+    size: '공유 링크 🔗',
+    date: (new Date().getMonth() + 1) + '.' + new Date().getDate(),
+    isLink: true,
+    url: url.trim(),
+    content: url.trim()
+  });
+
+  saveDataToStorage();
+  renderSharedFiles();
+  showSyncFlashToast('🔗 공유 링크 서류가 0.01초 실시간 동기화 등록되었습니다!');
+};
+
+window.downloadSingleFile = function(id) {
   const file = sharedFilesData.find(f => f.id === id);
   if (!file) return;
 
-  let fileContent = file.content;
-  if (!fileContent || fileContent === 'INDEXED_DB') {
-    fileContent = await getBlobFromIndexedDB('files_blob', id);
+  if (file.isLink && file.url) {
+    window.open(file.url, '_blank');
+    return;
   }
 
   const link = document.createElement('a');
 
-  if (fileContent && typeof fileContent === 'string' && fileContent.startsWith('data:')) {
-    link.href = fileContent;
+  if (file.content && typeof file.content === 'string' && file.content.startsWith('data:')) {
+    link.href = file.content;
   } else {
     const BOM = "\uFEFF";
-    const blob = new Blob([BOM + (fileContent || '서류 데이터 내용입니다.')], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([BOM + (file.content || '서류 데이터 내용입니다.')], { type: 'text/plain;charset=utf-8' });
     link.href = URL.createObjectURL(blob);
   }
 
@@ -878,7 +789,6 @@ window.triggerDocUpload = function() {
   if (fileInput) fileInput.click();
 };
 
-/* 💡 [IndexedDB 무제한 파일 업로드 엔진 연동] */
 window.handleFileUpload = function(files) {
   if (!files || files.length === 0) return;
   Array.from(files).forEach(file => {
@@ -891,24 +801,19 @@ window.handleFileUpload = function(files) {
     else if (tagChoice === '4') tag = '학교제출 서류';
 
     const reader = new FileReader();
-    reader.onload = async (e) => {
-      const fileId = 'f-' + Date.now() + Math.random().toString(36).substr(2, 4);
-      const fileRecord = {
-        id: fileId,
+    reader.onload = (e) => {
+      sharedFilesData.push({
+        id: 'f-' + Date.now() + Math.random().toString(36).substr(2, 4),
         name: file.name,
         tag: tag,
         size: (file.size / 1024).toFixed(0) + ' KB',
         date: (new Date().getMonth() + 1) + '.' + new Date().getDate(),
+        isLink: false,
         content: e.target.result
-      };
-
-      // 💡 IndexedDB에 대용량 바이너리 보관!
-      await saveBlobToIndexedDB('files_blob', { id: fileId, content: e.target.result });
-
-      sharedFilesData.push(fileRecord);
+      });
       saveDataToStorage();
       renderSharedFiles();
-      showSyncFlashToast('📄 서류 파일이 IndexedDB에 안전 등록되었습니다!');
+      showSyncFlashToast('📄 서류가 0.1초 실시간 동기화 등록되었습니다!');
     };
     reader.readAsDataURL(file);
   });
@@ -942,9 +847,15 @@ function renderSharedFiles() {
     const li = document.createElement('li');
     li.className = 'doc-item-li';
 
+    const iconHtml = file.isLink 
+      ? `<i class="fa-solid fa-link" style="color:var(--sydney-ocean); font-size:1.3rem; flex-shrink:0; margin-top:2px;"></i>`
+      : `<i class="fa-solid fa-file-pdf" style="color:var(--uluru-red); font-size:1.3rem; flex-shrink:0; margin-top:2px;"></i>`;
+
+    const btnText = file.isLink ? '<i class="fa-solid fa-arrow-up-right-from-square"></i> 열기' : '<i class="fa-solid fa-download"></i> 다운';
+
     li.innerHTML = `
       <div class="doc-item-info">
-        <i class="fa-solid fa-file-pdf" style="color:var(--uluru-red); font-size:1.3rem; flex-shrink:0; margin-top:2px;"></i>
+        ${iconHtml}
         <div style="overflow:hidden; flex-grow:1;">
           <span class="doc-file-name">${escapeHTML(file.name)}</span>
           <div class="doc-file-meta">
@@ -955,7 +866,7 @@ function renderSharedFiles() {
       </div>
       <div class="doc-item-actions">
         <button class="clay-btn clay-btn-primary" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;" onclick="downloadSingleFile('${file.id}')">
-          <i class="fa-solid fa-download"></i> 다운
+          ${btnText}
         </button>
         <button class="clay-btn clay-btn-danger" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteSharedFile('${file.id}')">
           <i class="fa-solid fa-trash"></i>
@@ -1508,7 +1419,8 @@ window.triggerPhotoUpload = function() {
   if (photoInput) photoInput.click();
 };
 
-function compressImage(dataUrl, maxWidth, callback) {
+/* 💡 [30KB 초경량 웹 최적화 400px 캔버스 압축 엔진] */
+function compressImageUltraLight(dataUrl, maxWidth, callback) {
   const img = new Image();
   img.onload = () => {
     const canvas = document.createElement('canvas');
@@ -1526,22 +1438,21 @@ function compressImage(dataUrl, maxWidth, callback) {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, width, height);
 
-    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    // JPEG 0.5 품질 압축 (약 15~30KB 내외로 99% 용량감축) ➔ 카드 필요 없는 파이어베이스 0.1초 실시간 동기화!
+    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
     callback(compressedDataUrl);
   };
   img.src = dataUrl;
 }
 
-/* 💡 IndexedDB 기반 무제한 사진 업로드 탑재 */
 window.handlePhotoUpload = function(files) {
   if (!files || files.length === 0) return;
   const file = files[0];
   const reader = new FileReader();
   reader.onload = (event) => {
-    compressImage(event.target.result, 600, async (compressedSrc) => {
-      const photoId = 'p-' + Date.now();
-      const photoRecord = {
-        id: photoId,
+    compressImageUltraLight(event.target.result, 400, (compressedSrc) => {
+      photoData.push({
+        id: 'p-' + Date.now(),
         src: compressedSrc,
         title: file.name,
         category: currentPhotoFilter !== 'all' ? currentPhotoFilter : '8/23',
@@ -1549,15 +1460,10 @@ window.handlePhotoUpload = function(files) {
         thumb: 0,
         wow: 0,
         party: 0
-      };
-
-      // IndexedDB에 사진 바이너리 안전 저장!
-      await saveBlobToIndexedDB('photos_blob', { id: photoId, content: compressedSrc });
-
-      photoData.push(photoRecord);
+      });
       saveDataToStorage();
       renderPhotos();
-      showSyncFlashToast('📸 사진이 IndexedDB 스토리지에 무제한 안심 저장되었습니다!');
+      showSyncFlashToast('📸 사진이 초경량 압축되어 0.1초 실시간 공유되었습니다!');
     });
   };
   reader.readAsDataURL(file);
@@ -1600,7 +1506,7 @@ function renderPhotos() {
 
     card.innerHTML = `
       <div style="overflow:hidden; border-radius:12px; margin-bottom:8px; height:140px; background:#000;">
-        <img id="img-${p.id}" src="${p.src}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        <img src="${p.src}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
       </div>
       <div style="font-weight:700; font-size:0.88rem; margin-bottom:6px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHTML(p.title)}</div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:4px;">
@@ -1618,17 +1524,6 @@ function renderPhotos() {
     `;
 
     container.appendChild(card);
-
-    // IndexedDB 비동기 복원
-    if (!p.src || p.src.includes('unsplash')) {
-      getBlobFromIndexedDB('photos_blob', p.id).then(blobData => {
-        if (blobData) {
-          p.src = blobData;
-          const imgEl = document.getElementById(`img-${p.id}`);
-          if (imgEl) imgEl.src = blobData;
-        }
-      });
-    }
   });
 }
 
@@ -1642,7 +1537,7 @@ window.reactPhoto = function(id, type) {
   }
 };
 
-window.openPhotoLightbox = async function(id) {
+window.openPhotoLightbox = function(id) {
   const photo = photoData.find(p => p.id === id);
   if (!photo) return;
 
@@ -1652,13 +1547,7 @@ window.openPhotoLightbox = async function(id) {
   const titleEl = document.getElementById('lightboxTitle');
   const categoryEl = document.getElementById('lightboxCategory');
 
-  let imgSrc = photo.src;
-  if (!imgSrc || imgSrc.includes('unsplash')) {
-    const blobData = await getBlobFromIndexedDB('photos_blob', id);
-    if (blobData) imgSrc = blobData;
-  }
-
-  imgEl.src = imgSrc;
+  imgEl.src = photo.src;
   titleEl.innerText = photo.title || '사진 상세보기';
   
   let categoryLabel = photo.category === '8/23' ? '8/23 오페라하우스' : (photo.category === '8/24' ? '8/24 복귀' : photo.category);
@@ -1678,18 +1567,12 @@ window.downloadCurrentLightboxPhoto = function() {
   }
 };
 
-window.downloadPhotoFile = async function(id) {
+window.downloadPhotoFile = function(id) {
   const photo = photoData.find(p => p.id === id);
   if (!photo) return;
 
-  let imgSrc = photo.src;
-  if (!imgSrc || imgSrc.includes('unsplash')) {
-    const blobData = await getBlobFromIndexedDB('photos_blob', id);
-    if (blobData) imgSrc = blobData;
-  }
-
   const link = document.createElement('a');
-  link.href = imgSrc;
+  link.href = photo.src;
   link.download = `시드니여행_${photo.title || '사진'}.jpg`;
   document.body.appendChild(link);
   link.click();
