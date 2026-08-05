@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.2
-   (마우스 호버 시 일정요약 슬라이딩 자동 확장 & 이탈 시 부드럽게 닫힘 탑재)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.5
+   (서류 공유함 & 사진 갤러리 0.1초 구글 클라우드 실시간 동기화 엔진 완전 탑재)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTabNavigation();
   renderItinerarySidebar();
   renderDrawerItineraryList();
-  initHoverItineraryDrawer(); // 💡 마우스 호버 자동 뻗어나옴 바인딩
+  initHoverItineraryDrawer();
   initMap();
   renderChecklist();
   renderSettlementTable();
@@ -224,7 +224,7 @@ function initHoverItineraryDrawer() {
       if (!drawer.classList.contains('active')) {
         drawer.classList.remove('hover-active');
       }
-    }, 250); // 0.25초 후 부드럽게 복귀
+    }, 250);
   };
 
   btn.addEventListener('mouseenter', expandDrawer);
@@ -610,6 +610,7 @@ function updateCloudSyncBadge(isConnected, text) {
   }
 }
 
+/* 💡 [수리] 서류(files) & 사진(photos) 0.1초 구글 클라우드 동기화 엔진 연결! */
 function pushDataToFirebaseCloud() {
   const sortedSettlements = sortSettlementData(settlementData);
   const payload = {
@@ -621,6 +622,8 @@ function pushDataToFirebaseCloud() {
     hotel: hotelData,
     emergency: emergencyData,
     memos: memoData,
+    files: sharedFilesData, // 💡 서류 실시간 동기화 추가!
+    photos: photoData,       // 💡 사진 갤러리 실시간 동기화 추가!
     updatedAt: Date.now()
   };
 
@@ -656,6 +659,7 @@ function subscribeCloudSyncChanges() {
   }
 }
 
+/* 💡 [수리] 원격 수신 시 서류 & 사진 갤러리 렌더링 즉시 반영! */
 function applyRemoteCloudData(data) {
   isRemoteUpdating = true;
   if (data.itinerary) itineraryData = data.itinerary;
@@ -672,6 +676,8 @@ function applyRemoteCloudData(data) {
   if (data.hotel) hotelData = data.hotel;
   if (data.emergency) emergencyData = data.emergency;
   if (data.memos) memoData = data.memos;
+  if (data.files) sharedFilesData = data.files; // 💡 서류 원격 수신
+  if (data.photos) photoData = data.photos;     // 💡 사진 갤러리 원격 수신
 
   saveDataToStorage();
   renderAllViews();
