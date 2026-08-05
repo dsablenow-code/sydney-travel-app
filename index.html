@@ -421,36 +421,46 @@
 
       <!-- 주제 1 카드 -->
       <div class="clay-card" id="topicCard-topic-1" style="border-top: 6px solid var(--sydney-ocean); margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
           <h3 style="font-weight: 800; font-size: 1.1rem; color: var(--sydney-ocean);">
             <i class="fa-solid fa-bookmark"></i> 주제 1
           </h3>
-          <button class="clay-btn clay-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="editTopicTitle('topic-1')">
-            <i class="fa-solid fa-pen"></i> 제목 수정
-          </button>
+          <div style="display: flex; gap: 6px;">
+            <button class="clay-btn clay-btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addReportSession('topic-1')">
+              <i class="fa-solid fa-plus-circle"></i> 세션(장소 세트) 추가
+            </button>
+            <button class="clay-btn clay-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="editTopicTitle('topic-1')">
+              <i class="fa-solid fa-pen"></i> 제목 수정
+            </button>
+          </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
           <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">제목:</span>
           <span id="topicTitle-topic-1" style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary);">주제 1 제목을 입력하세요</span>
         </div>
-        <div id="topicBody-topic-1"></div>
+        <div id="topicBody-topic-1" style="display: flex; flex-direction: column; gap: 20px;"></div>
       </div>
 
       <!-- 주제 2 카드 -->
       <div class="clay-card" id="topicCard-topic-2" style="border-top: 6px solid var(--eucalyptus-green); margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
           <h3 style="font-weight: 800; font-size: 1.1rem; color: var(--eucalyptus-green);">
             <i class="fa-solid fa-bookmark"></i> 주제 2
           </h3>
-          <button class="clay-btn clay-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="editTopicTitle('topic-2')">
-            <i class="fa-solid fa-pen"></i> 제목 수정
-          </button>
+          <div style="display: flex; gap: 6px;">
+            <button class="clay-btn clay-btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addReportSession('topic-2')">
+              <i class="fa-solid fa-plus-circle"></i> 세션(장소 세트) 추가
+            </button>
+            <button class="clay-btn clay-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="editTopicTitle('topic-2')">
+              <i class="fa-solid fa-pen"></i> 제목 수정
+            </button>
+          </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
           <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">제목:</span>
           <span id="topicTitle-topic-2" style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary);">주제 2 제목을 입력하세요</span>
         </div>
-        <div id="topicBody-topic-2"></div>
+        <div id="topicBody-topic-2" style="display: flex; flex-direction: column; gap: 20px;"></div>
       </div>
 
       <!-- PPT 개요 영역 -->

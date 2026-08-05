@@ -142,49 +142,69 @@ const defaultReportData = {
     {
       id: 'topic-1',
       title: '한방산업의 육성 사례분석 및 지역사회 접목 방안 도출',
-      places: [
-        '호주 시드니 로열 보태닉 가든 (Royal Botanic Garden Sydney)',
-        '블루 마운틴스 (Blue Mountains)'
-      ],
-      experiences: [
-        '로열 보태닉 가든: 약용 식물(Medicinal Plants) 구역 큐레이션 관찰 (효능·역사·활용법 교육 콘텐츠)',
-        '보태닉 가든 에듀테인먼트 체험 프로그램 (허브 추출 워크숍 등) 분석',
-        '블루 마운틴스: 에코 포인트 & 쓰리 시스터즈 트레킹 등 자연환경 기반 웰니스 힐링 코스 분석'
-      ],
-      results: [
-        '제천시의 한방 도시 브랜드 인프라 대비 체험형/교육형 큐레이션 콘텐츠 부재 진단',
-        '기존 전시 중심 시설(한방생명과학관 등)의 한계점 확인 (전체 관광객 대비 방문 비중 5% 불과)',
-        '자연경관 감상 위주에 편중된 제천 관광 상품의 고부가가치 웰니스 전환 필요성 도출'
-      ],
-      connections: [
-        '제천 한방엑스포공원 일대에 호주 모델을 벤치마킹한 \'제천 한방약초 테마가든\' 조성 및 디지털 도감 도입',
-        '월악산·청풍호 일대에 약초 채집 및 시음 등을 연계한 \'한방 웰니스 트레킹 코스\' 사계절 운영 프로그램 구축',
-        '지역 어르신 전통 지식 자원화를 위한 \'한방 해설사\' 일자리 창출 선순환 모델 기획',
-        '제천 약초거리에 호주 마켓 모델을 벤치마킹한 \'한방 파머스 마켓\' 정기 개최 제안'
+      sessions: [
+        {
+          id: 'sess-1-1',
+          title: '로열 보태닉 가든 약용식물 큐레이션 및 테마가든 조성',
+          places: ['호주 시드니 로열 보태닉 가든 (Royal Botanic Garden Sydney)'],
+          experiences: [
+            '약용 식물(Medicinal Plants) 구역 큐레이션 관찰 (효능·역사·활용법 교육 콘텐츠)',
+            '보태닉 가든 에듀테인먼트 체험 프로그램 (허브 추출 워크숍 등) 분석'
+          ],
+          results: [
+            '제천시의 한방 도시 브랜드 인프라 대비 체험형/교육형 큐레이션 콘텐츠 부재 진단',
+            '기존 전시 중심 시설(한방생명과학관 등)의 한계점 확인 (전체 관광객 대비 방문 비중 5% 불과)'
+          ],
+          connections: [
+            '제천 한방엑스포공원 일대에 호주 모델을 벤치마킹한 \'제천 한방약초 테마가든\' 조성 및 디지털 도감 도입',
+            '지역 어르신 전통 지식 자원화를 위한 \'한방 해설사\' 일자리 창출 선순환 모델 기획'
+          ]
+        },
+        {
+          id: 'sess-1-2',
+          title: '블루 마운틴스 에코투어리즘 및 웰니스 트레킹',
+          places: ['블루 마운틴스 (Blue Mountains)'],
+          experiences: ['에코 포인트 & 쓰리 시스터즈 트레킹 등 자연환경 기반 웰니스 힐링 코스 분석'],
+          results: ['자연경관 감상 위주에 편중된 제천 관광 상품의 고부가가치 웰니스 전환 필요성 도출'],
+          connections: [
+            '월악산·청풍호 일대에 약초 채집 및 시음 등을 연계한 \'한방 웰니스 트레킹 코스\' 사계절 운영 프로그램 구축',
+            '제천 약초거리에 호주 마켓 모델을 벤치마킹한 \'한방 파머스 마켓\' 정기 개최 제안'
+          ]
+        }
       ]
     },
     {
       id: 'topic-2',
       title: '호주 대학의 Wellness Hub 인프라 분석을 통한 세명대 한의과대학 맞춤형 학생 웰니스 시스템 구축 방안',
-      places: [
-        '시드니 대학교 (University of Sydney)',
-        'UNSW (뉴사우스웨일즈 대학교)'
-      ],
-      experiences: [
-        '시드니 대학교: CAPS 및 Health and Wellbeing Hub 운영 실태 및 공간 구성 분석',
-        '의대·보건계열 학생들의 번아웃 예방을 위한 전담 프로그램 벤치마킹',
-        'UNSW: 또래 상담원을 양성하는 Peer Support Network 위기 조기 감지 시스템 분석'
-      ],
-      results: [
-        '한국 대학생 우울 위험군(43.5%) 및 의대생 우울증군(42.4%) 등 번아웃 문제의 심각성 대조',
-        '세명대 한의과대학 6년제 긴 학업 기간 및 강도 대비 전문적인 학내 심리 웰니스 인프라 부족 진단',
-        '지리적 특성(낮은 접근성)에 따른 여가 부재와 한의학적 특화 웰니스 접목 부재 문제점 확인'
-      ],
-      connections: [
-        '세명대 한의과대학 내 한방 통합 심리이완 및 테라피 공간인 \'安神(안신) 힐링 센터\' 설립 제안',
-        '한의학과 고학년이 저학년을 체질별 생활습관 등으로 케어하는 \'한방 또래 상담 (Peer Support) 프로그램\' 구축',
-        '캠퍼스 유휴 녹지를 활용하여 하이드파크/보태닉 가든 스타일의 \'약초 힐링 가든(명상 산책로)\' 조성',
-        '세명대 한의과대학만의 차별화된 학생 복지 브랜드 수립 및 타 대학 의학계열 확산 모델 확보'
+      sessions: [
+        {
+          id: 'sess-2-1',
+          title: '시드니 대학교 CAPS & Wellness Hub 분석과 安神 힐링 센터',
+          places: ['시드니 대학교 (University of Sydney)'],
+          experiences: [
+            '시드니 대학교: CAPS 및 Health and Wellbeing Hub 운영 실태 및 공간 구성 분석',
+            '의대·보건계열 학생들의 번아웃 예방을 위한 전담 프로그램 벤치마킹'
+          ],
+          results: [
+            '한국 대학생 우울 위험군(43.5%) 및 의대생 우울증군(42.4%) 등 번아웃 문제의 심각성 대조',
+            '세명대 한의과대학 6년제 긴 학업 기간 및 강도 대비 전문적인 학내 심리 웰니스 인프라 부족 진단'
+          ],
+          connections: [
+            '세명대 한의과대학 내 한방 통합 심리이완 및 테라피 공간인 \'安神(안신) 힐링 센터\' 설립 제안',
+            '캠퍼스 유휴 녹지를 활용하여 하이드파크/보태닉 가든 스타일의 \'약초 힐링 가든(명상 산책로)\' 조성'
+          ]
+        },
+        {
+          id: 'sess-2-2',
+          title: 'UNSW Peer Support Network와 한방 또래 상담',
+          places: ['UNSW (뉴사우스웨일즈 대학교)'],
+          experiences: ['UNSW: 또래 상담원을 양성하는 Peer Support Network 위기 조기 감지 시스템 분석'],
+          results: ['지리적 특성(낮은 접근성)에 따른 여가 부재와 한의학적 특화 웰니스 접목 부재 문제점 확인'],
+          connections: [
+            '한의학과 고학년이 저학년을 체질별 생활습관 등으로 케어하는 \'한방 또래 상담 (Peer Support) 프로그램\' 구축',
+            '세명대 한의과대학만의 차별화된 학생 복지 브랜드 수립 및 타 대학 의학계열 확산 모델 확보'
+          ]
+        }
       ]
     }
   ],
@@ -1498,16 +1518,55 @@ window.deleteMemo = function(id) {
   }
 };
 
-/* ========== 결과 보고서 탭 ========== */
+/* ========== 결과 보고서 탭 (세션/장소 세트 단위 동적 추가 개편) ========== */
 
 const reportFieldLabels = {
   places: { icon: '🏢', label: '연수 장소', color: 'var(--sydney-ocean)' },
   experiences: { icon: '📝', label: '체험 내용', color: 'var(--aus-gold)' },
   results: { icon: '🎯', label: '도출 결과', color: 'var(--uluru-red)' },
-  connections: { icon: '🏛️', label: '제천시 연계 방안', color: 'var(--eucalyptus-green)' }
+  connections: { icon: '🏛️', label: '연계 방안', color: 'var(--eucalyptus-green)' }
 };
 
+// 하위 호환성 마이그레이션 함수
+function migrateReportData() {
+  if (!reportData || !reportData.topics) {
+    reportData = JSON.parse(JSON.stringify(defaultReportData));
+    return;
+  }
+  
+  reportData.topics.forEach(topic => {
+    if (!topic.sessions) {
+      topic.sessions = [];
+      if ((topic.places && topic.places.length) || 
+          (topic.experiences && topic.experiences.length) || 
+          (topic.results && topic.results.length) || 
+          (topic.connections && topic.connections.length)) {
+        
+        topic.sessions.push({
+          id: 'sess-' + topic.id + '-migrated',
+          title: '이전 버전 백업 세션',
+          places: topic.places || [],
+          experiences: topic.experiences || [],
+          results: topic.results || [],
+          connections: topic.connections || []
+        });
+      }
+      
+      delete topic.places;
+      delete topic.experiences;
+      delete topic.results;
+      delete topic.connections;
+    }
+  });
+
+  if (!reportData.pptSlides || reportData.pptSlides.length === 0) {
+    reportData.pptSlides = JSON.parse(JSON.stringify(defaultReportData.pptSlides));
+  }
+}
+
 function renderReport() {
+  migrateReportData();
+
   reportData.topics.forEach(topic => {
     const titleEl = document.getElementById(`topicTitle-${topic.id}`);
     if (titleEl) titleEl.innerText = topic.title;
@@ -1516,66 +1575,91 @@ function renderReport() {
     if (!bodyEl) return;
     bodyEl.innerHTML = '';
 
-    // 2단 분할 그리드 생성
-    const grid = document.createElement('div');
-    grid.className = 'report-grid-2col';
-    grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; width: 100%;';
+    const sessions = topic.sessions || [];
+    if (sessions.length === 0) {
+      bodyEl.innerHTML = '<div style="font-size: 0.82rem; color: var(--text-muted); text-align: center; padding: 20px; background: var(--input-bg); border-radius: 8px;">세션(장소 세트)이 없습니다. 상단의 버튼을 눌러 추가해주세요.</div>';
+      return;
+    }
 
-    // 좌측 열: 호주 사례분석
-    const leftCol = document.createElement('div');
-    leftCol.style.cssText = 'display: flex; flex-direction: column; gap: 12px; background: rgba(0, 128, 148, 0.04); padding: 12px; border-radius: 12px; border: 1px solid rgba(0, 128, 148, 0.1);';
-    leftCol.innerHTML = `<h4 style="margin: 0 0 6px 0; font-size: 0.9rem; font-weight: 800; color: var(--sydney-ocean);"><i class="fa-solid fa-earth-oceania"></i> 🇦🇺 호주 선진 사례분석</h4>`;
+    sessions.forEach((session, sIdx) => {
+      const sessionCard = document.createElement('div');
+      sessionCard.className = 'session-card';
+      sessionCard.style.cssText = 'background: var(--input-bg); padding: 14px; border-radius: 12px; border: 1px solid var(--input-border); box-shadow: var(--clay-shadow-pressed); display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;';
 
-    // 우측 열: 접목 및 결과 도출
-    const rightCol = document.createElement('div');
-    rightCol.style.cssText = 'display: flex; flex-direction: column; gap: 12px; background: rgba(229, 81, 0, 0.04); padding: 12px; border-radius: 12px; border: 1px solid rgba(229, 81, 0, 0.1);';
-    const isTopic1 = topic.id === 'topic-1';
-    const targetLabel = isTopic1 ? '제천시' : '세명대';
-    const targetColor = isTopic1 ? 'var(--uluru-red)' : 'var(--eucalyptus-green)';
-    rightCol.innerHTML = `<h4 style="margin: 0 0 6px 0; font-size: 0.9rem; font-weight: 800; color: ${targetColor};"><i class="fa-solid fa-house-medical"></i> 🇰🇷 ${targetLabel} 접목 및 결과 도출</h4>`;
-
-    ['places', 'experiences', 'results', 'connections'].forEach(field => {
-      const meta = reportFieldLabels[field];
-      const section = document.createElement('div');
-      section.style.cssText = 'background: var(--card-bg); padding: 10px 12px; border-radius: var(--radius-md); box-shadow: var(--clay-shadow-pressed);';
-
-      const items = topic[field] || [];
-      const itemsHtml = items.map((item, idx) => `
-        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: var(--input-bg); border-radius: 8px; font-size: 0.82rem; margin-bottom: 4px; border: 1px solid var(--input-border); gap: 8px;">
-          <span style="flex: 1; word-break: keep-all; line-height: 1.35;">${escapeHTML(item)}</span>
-          <div style="display: flex; gap: 4px; flex-shrink: 0;">
-            <button class="clay-btn clay-btn-secondary" style="padding: 2px 6px; font-size: 0.68rem;" onclick="editReportItem('${topic.id}', '${field}', ${idx})">
-              <i class="fa-solid fa-pen"></i>
-            </button>
-            <button class="clay-btn clay-btn-danger" style="padding: 2px 6px; font-size: 0.68rem;" onclick="deleteReportItem('${topic.id}', '${field}', ${idx})">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </div>
-        </li>
-      `).join('');
-
-      section.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span style="font-size: 0.83rem; font-weight: 800; color: ${meta.color};">${meta.icon} ${meta.label}</span>
-          <button class="clay-btn clay-btn-secondary" style="padding: 2px 8px; font-size: 0.7rem;" onclick="addReportItem('${topic.id}', '${field}')">
-            <i class="fa-solid fa-plus"></i> 추가
+      const sessionHeader = document.createElement('div');
+      sessionHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--input-border); padding-bottom: 8px; flex-wrap: wrap; gap: 8px;';
+      sessionHeader.innerHTML = `
+        <span style="font-weight: 800; font-size: 0.9rem; color: var(--text-primary);">📍 세션 ${sIdx + 1}: ${escapeHTML(session.title)}</span>
+        <div style="display: flex; gap: 6px;">
+          <button class="clay-btn clay-btn-secondary" style="padding: 3px 8px; font-size: 0.72rem;" onclick="editReportSessionTitle('${topic.id}', '${session.id}')">
+            <i class="fa-solid fa-pen"></i> 제목 수정
+          </button>
+          <button class="clay-btn clay-btn-danger" style="padding: 3px 8px; font-size: 0.72rem;" onclick="deleteReportSession('${topic.id}', '${session.id}')">
+            <i class="fa-solid fa-trash"></i> 세션 삭제
           </button>
         </div>
-        <ul style="list-style: none; padding: 0; margin: 0;">
-          ${itemsHtml || '<li style="font-size: 0.78rem; color: var(--text-muted); text-align: center; padding: 8px;">항목이 없습니다</li>'}
-        </ul>
       `;
+      sessionCard.appendChild(sessionHeader);
 
-      if (field === 'places' || field === 'experiences') {
-        leftCol.appendChild(section);
-      } else {
-        rightCol.appendChild(section);
-      }
+      const grid = document.createElement('div');
+      grid.className = 'report-grid-2col';
+      grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; width: 100%;';
+
+      const leftCol = document.createElement('div');
+      leftCol.style.cssText = 'display: flex; flex-direction: column; gap: 8px; background: rgba(0, 128, 148, 0.03); padding: 10px; border-radius: 8px; border: 1px solid rgba(0, 128, 148, 0.08);';
+      leftCol.innerHTML = `<h5 style="margin: 0 0 4px 0; font-size: 0.82rem; font-weight: 800; color: var(--sydney-ocean);"><i class="fa-solid fa-earth-oceania"></i> 🇦🇺 호주 사례분석</h5>`;
+
+      const rightCol = document.createElement('div');
+      rightCol.style.cssText = 'display: flex; flex-direction: column; gap: 8px; background: rgba(229, 81, 0, 0.03); padding: 10px; border-radius: 8px; border: 1px solid rgba(229, 81, 0, 0.08);';
+      const isTopic1 = topic.id === 'topic-1';
+      const targetLabel = isTopic1 ? '제천시' : '세명대';
+      const targetColor = isTopic1 ? 'var(--uluru-red)' : 'var(--eucalyptus-green)';
+      rightCol.innerHTML = `<h5 style="margin: 0 0 4px 0; font-size: 0.82rem; font-weight: 800; color: ${targetColor};"><i class="fa-solid fa-house-medical"></i> 🇰🇷 ${targetLabel} 접목</h5>`;
+
+      ['places', 'experiences', 'results', 'connections'].forEach(field => {
+        const meta = reportFieldLabels[field];
+        const section = document.createElement('div');
+        section.style.cssText = 'background: var(--card-bg); padding: 8px 10px; border-radius: var(--radius-md); box-shadow: var(--clay-shadow-pressed);';
+
+        const items = session[field] || [];
+        const itemsHtml = items.map((item, idx) => `
+          <li style="display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; background: var(--input-bg); border-radius: 6px; font-size: 0.8rem; margin-bottom: 3px; border: 1px solid var(--input-border); gap: 6px;">
+            <span style="flex: 1; word-break: keep-all; line-height: 1.3;">${escapeHTML(item)}</span>
+            <div style="display: flex; gap: 3px; flex-shrink: 0;">
+              <button class="clay-btn clay-btn-secondary" style="padding: 1px 4px; font-size: 0.65rem;" onclick="editReportItem('${topic.id}', '${session.id}', '${field}', ${idx})">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button class="clay-btn clay-btn-danger" style="padding: 1px 4px; font-size: 0.65rem;" onclick="deleteReportItem('${topic.id}', '${session.id}', '${field}', ${idx})">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </li>
+        `).join('');
+
+        section.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-size: 0.78rem; font-weight: 800; color: ${meta.color};">${meta.icon} ${field === 'connections' ? (topic.id === 'topic-1' ? '제천시 연계 방안' : '세명대 연계 방안') : meta.label}</span>
+            <button class="clay-btn clay-btn-secondary" style="padding: 1px 6px; font-size: 0.65rem;" onclick="addReportItem('${topic.id}', '${session.id}', '${field}')">
+              <i class="fa-solid fa-plus"></i> 추가
+            </button>
+          </div>
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            ${itemsHtml || '<li style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 6px;">항목이 없습니다</li>'}
+          </ul>
+        `;
+
+        if (field === 'places' || field === 'experiences') {
+          leftCol.appendChild(section);
+        } else {
+          rightCol.appendChild(section);
+        }
+      });
+
+      grid.appendChild(leftCol);
+      grid.appendChild(rightCol);
+      sessionCard.appendChild(grid);
+      bodyEl.appendChild(sessionCard);
     });
-
-    grid.appendChild(leftCol);
-    grid.appendChild(rightCol);
-    bodyEl.appendChild(grid);
   });
 
   renderPptSlides();
@@ -1592,40 +1676,89 @@ window.editTopicTitle = function(topicId) {
   }
 };
 
-window.addReportItem = function(topicId, field) {
+/* ===== 세션(장소 세트) CRUD ===== */
+window.addReportSession = function(topicId) {
   const topic = reportData.topics.find(t => t.id === topicId);
   if (!topic) return;
+  const title = prompt('새로운 세션(방문 장소)의 명칭을 입력하세요:\n예) 시드니 대학교 Wellness Hub 분석');
+  if (title && title.trim()) {
+    if (!topic.sessions) topic.sessions = [];
+    topic.sessions.push({
+      id: 'sess-' + Date.now(),
+      title: title.trim(),
+      places: [],
+      experiences: [],
+      results: [],
+      connections: []
+    });
+    saveDataToStorage();
+    renderReport();
+  }
+};
+
+window.editReportSessionTitle = function(topicId, sessionId) {
+  const topic = reportData.topics.find(t => t.id === topicId);
+  if (!topic || !topic.sessions) return;
+  const session = topic.sessions.find(s => s.id === sessionId);
+  if (!session) return;
+  const newTitle = prompt('세션 명칭을 수정하세요:', session.title);
+  if (newTitle !== null && newTitle.trim()) {
+    session.title = newTitle.trim();
+    saveDataToStorage();
+    renderReport();
+  }
+};
+
+window.deleteReportSession = function(topicId, sessionId) {
+  const topic = reportData.topics.find(t => t.id === topicId);
+  if (!topic || !topic.sessions) return;
+  if (confirm('이 세션(장소 세트) 및 내부의 모든 사례/접목 데이터를 정말 삭제하시겠습니까?')) {
+    topic.sessions = topic.sessions.filter(s => s.id !== sessionId);
+    saveDataToStorage();
+    renderReport();
+  }
+};
+
+/* ===== 세션 내부 아이템 CRUD ===== */
+window.addReportItem = function(topicId, sessionId, field) {
+  const topic = reportData.topics.find(t => t.id === topicId);
+  if (!topic || !topic.sessions) return;
+  const session = topic.sessions.find(s => s.id === sessionId);
+  if (!session) return;
   const label = reportFieldLabels[field]?.label || field;
-  const text = prompt(`[${label}] 항목을 입력하세요:`);
+  const text = prompt(`[${label}] 항목을 추가 입력하세요:`);
   if (text && text.trim()) {
-    if (!topic[field]) topic[field] = [];
-    topic[field].push(text.trim());
+    if (!session[field]) session[field] = [];
+    session[field].push(text.trim());
     saveDataToStorage();
     renderReport();
   }
 };
 
-window.editReportItem = function(topicId, field, idx) {
+window.editReportItem = function(topicId, sessionId, field, idx) {
   const topic = reportData.topics.find(t => t.id === topicId);
-  if (!topic || !topic[field]) return;
-  const newText = prompt('내용을 수정하세요:', topic[field][idx]);
+  if (!topic || !topic.sessions) return;
+  const session = topic.sessions.find(s => s.id === sessionId);
+  if (!session || !session[field]) return;
+  const newText = prompt('내용을 수정하세요:', session[field][idx]);
   if (newText !== null && newText.trim()) {
-    topic[field][idx] = newText.trim();
+    session[field][idx] = newText.trim();
     saveDataToStorage();
     renderReport();
   }
 };
 
-window.deleteReportItem = function(topicId, field, idx) {
+window.deleteReportItem = function(topicId, sessionId, field, idx) {
   const topic = reportData.topics.find(t => t.id === topicId);
-  if (!topic || !topic[field]) return;
+  if (!topic || !topic.sessions) return;
+  const session = topic.sessions.find(s => s.id === sessionId);
+  if (!session || !session[field]) return;
   if (confirm('이 항목을 삭제하시겠습니까?')) {
-    topic[field].splice(idx, 1);
+    session[field].splice(idx, 1);
     saveDataToStorage();
     renderReport();
   }
 };
-
 function renderPptSlides() {
   const container = document.getElementById('pptSlideList');
   if (!container) return;
@@ -1681,40 +1814,49 @@ window.deletePptSlide = function(idx) {
 /* ========== md / txt 내보내기 ========== */
 
 function buildReportMarkdown() {
-  let md = '# 2026 호주 배낭연수 결과 보고서\\n\\n';
-  md += `- 연수 기간: 2026.08.19 ~ 08.24\\n`;
-  md += `- 연수지: 호주 시드니\\n\\n`;
-  md += '---\\n\\n';
+  let md = '# 2026 호주 배낭연수 결과 보고서\n\n';
+  md += `- 연수 기간: 2026.08.19 ~ 08.24\n`;
+  md += `- 연수지: 호주 시드니\n\n`;
+  md += '---\n\n';
 
   reportData.topics.forEach((topic, tIdx) => {
-    md += `## ${tIdx + 1}. ${topic.title}\\n\\n`;
+    md += `## ${tIdx + 1}. ${topic.title}\n\n`;
 
-    const fields = [
-      { key: 'places', label: '연수 장소' },
-      { key: 'experiences', label: '체험 내용' },
-      { key: 'results', label: '도출 결과' },
-      { key: 'connections', label: '제천시 연계 방안' }
-    ];
+    const sessions = topic.sessions || [];
+    if (sessions.length === 0) {
+      md += '*(등록된 세션이 없습니다)*\n\n';
+    } else {
+      sessions.forEach((session, sIdx) => {
+        md += `### [세션 ${sIdx + 1}] ${session.title}\n\n`;
 
-    fields.forEach(f => {
-      md += `### ${f.label}\\n\\n`;
-      const items = topic[f.key] || [];
-      if (items.length === 0) {
-        md += '- (미입력)\\n';
-      } else {
-        items.forEach(item => { md += `- ${item}\\n`; });
-      }
-      md += '\\n';
-    });
+        const fields = [
+          { key: 'places', label: '연수 장소' },
+          { key: 'experiences', label: '체험 내용' },
+          { key: 'results', label: '도출 결과' },
+          { key: 'connections', label: topic.id === 'topic-1' ? '제천시 연계 방안' : '세명대 연계 방안' }
+        ];
 
-    md += '---\\n\\n';
+        fields.forEach(f => {
+          md += `#### ${f.label}\n`;
+          const items = session[f.key] || [];
+          if (items.length === 0) {
+            md += '- (미입력)\n';
+          } else {
+            items.forEach(item => { md += `- ${item}\n`; });
+          }
+          md += '\n';
+        });
+      });
+    }
+
+    md += '---\n\n';
   });
 
-  md += '## PPT 결과보고서 개요\\n\\n';
-  md += '| 페이지 | 제목 | 내용 |\\n';
-  md += '|:---:|:---|:---|\\n';
+  md += '## PPT 결과보고서 개요\n\n';
+  md += '| 페이지 | 제목 | 내용 |\n';
+  md += '|:---:|:---|:---|\n';
   (reportData.pptSlides || []).forEach(slide => {
-    md += `| P.${slide.page} | ${slide.title} | ${slide.content} |\\n`;
+    md += `| P.${slide.page} | ${slide.title} | ${slide.content} |\n`;
   });
 
   return md;
