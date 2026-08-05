@@ -333,6 +333,17 @@
             </tbody>
           </table>
         </div>
+
+        <!-- ✍️ [신설] 연수 정산서 전용 메모 칸 -->
+        <div class="clay-card" style="margin-top: 20px; border-left: 6px solid var(--aus-gold);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <strong style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary);">
+              <i class="fa-solid fa-pen-clip" style="color: var(--aus-gold);"></i> 정산서 관련 메모
+            </strong>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">(친구들과 실시간 동기화 및 줄바꿈 지원)</span>
+          </div>
+          <textarea id="settlementMemo" oninput="saveSettlementMemo()" style="width: 100%; min-height: 80px; padding: 12px 14px; border: 1px solid var(--input-border); background: var(--input-bg); border-radius: var(--radius-lg); font-size: 0.83rem; color: var(--text-primary); resize: vertical; outline: none; line-height: 1.45;" placeholder="정산 과정 중 특이사항이나 카드 결제 분담 내역 등을 간단히 메모하세요. (Enter 키로 줄바꿈 가능)"></textarea>
+        </div>
       </div>
     </section>
 

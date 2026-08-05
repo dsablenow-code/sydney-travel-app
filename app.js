@@ -233,7 +233,8 @@ const STORAGE_KEYS = {
   REPORT: 'sydney_master_report_v1',
   MEMOS: 'sydney_master_memos_v1',
   EXCHANGE_RATE: 'sydney_master_exchange_rate_v1',
-  FIREBASE_CONFIG: 'sydney_master_fb_config_v1'
+  FIREBASE_CONFIG: 'sydney_master_fb_config_v1',
+  SETTLEMENT_MEMO: 'sydney_master_settlement_memo_v1'
 };
 
 let itineraryData = [];
@@ -245,6 +246,7 @@ let hotelData = {};
 let emergencyData = {};
 let memoData = [];
 let reportData = {};
+let settlementMemoData = '';
 let sharedFilesData = [];
 let currentFileFilter = 'all';
 let mapInstance = null;
@@ -548,6 +550,10 @@ function loadDataFromStorage() {
     { id: 'm1', text: '오페라하우스 투어 11:45분까지 서큘러키 입구 집결!', time: '8/19 14:00' }
   ];
 
+  settlementMemoData = localStorage.getItem(STORAGE_KEYS.SETTLEMENT_MEMO) || '';
+  const memoEl = document.getElementById('settlementMemo');
+  if (memoEl) memoEl.value = settlementMemoData;
+
   pushUndoState();
 
   renderHotelAndEmergencyDisplay();
@@ -574,8 +580,6 @@ function saveDataToStorage(skipUndoPush = false) {
     content: (f.content && f.content.length < 50000) ? f.content : 'INDEXED_DB'
   }));
 
-  
-
   try {
     localStorage.setItem(STORAGE_KEYS.ITINERARY, JSON.stringify(itineraryData));
     localStorage.setItem(STORAGE_KEYS.SETTLEMENT, JSON.stringify(settlementData));
@@ -587,6 +591,7 @@ function saveDataToStorage(skipUndoPush = false) {
     localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify(metaOnlyFiles));
     localStorage.setItem(STORAGE_KEYS.REPORT, JSON.stringify(reportData));
     localStorage.setItem(STORAGE_KEYS.MEMOS, JSON.stringify(memoData));
+    localStorage.setItem(STORAGE_KEYS.SETTLEMENT_MEMO, settlementMemoData);
   } catch (e) {
     console.warn('LocalStorage 세이프가드 작동:', e);
   }
@@ -710,8 +715,6 @@ function pushDataToFirebaseCloud() {
     date: f.date
   }));
 
-  
-
   const payload = {
     itinerary: itineraryData,
     settlement: sortedSettlements,
@@ -723,6 +726,7 @@ function pushDataToFirebaseCloud() {
     memos: memoData,
     files: sanitizedFiles,
     report: reportData,
+    settlementMemo: settlementMemoData,
     updatedAt: Date.now()
   };
 
@@ -787,6 +791,11 @@ function applyRemoteCloudData(data) {
   }
 
   if (data.report) reportData = data.report;
+  if (typeof data.settlementMemo === 'string') {
+    settlementMemoData = data.settlementMemo;
+    const memoEl = document.getElementById('settlementMemo');
+    if (memoEl) memoEl.value = settlementMemoData;
+  }
 
   saveDataToStorage();
   renderAllViews();
@@ -1903,5 +1912,13 @@ ${mdContent}
     console.error('클립보드 복사 실패:', err);
     alert('복사에 실패했습니다. 콘솔 로그를 확인하거나 텍스트를 드래그하여 수동으로 복사해주세요.');
   });
+};
+
+window.saveSettlementMemo = function() {
+  const memoEl = document.getElementById('settlementMemo');
+  if (memoEl) {
+    settlementMemoData = memoEl.value;
+    saveDataToStorage(true); // undo stack에 쌓이지 않도록 true 전달
+  }
 };
 
