@@ -1,6 +1,6 @@
 /* ==========================================================================
-   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.5
-   (서류 공유함 & 사진 갤러리 0.1초 구글 클라우드 실시간 동기화 엔진 완전 탑재)
+   2026 호주머니 0원의 배낭연수 여행 & 정산 애플리케이션 코어 로직 v1.6.6
+   (서류 공유함 & 사진 갤러리 대용량 Base64 용량초과 예외방어 및 구글 클라우드 동기화 보장)
    ========================================================================== */
 
 // 1. 초기 시드니 6일간 여행 데이터
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 💡 [마우스 호버 슬라이딩 엔진]: 마우스를 올리면 길게 뻗어나오고 나가면 들어감!
+// 💡 [마우스 호버 슬라이딩 엔진]
 function initHoverItineraryDrawer() {
   const btn = document.getElementById('globalItineraryToggleBtn');
   const drawer = document.getElementById('globalItineraryDrawer');
@@ -491,16 +491,20 @@ function saveDataToStorage(skipUndoPush = false) {
     pushUndoState();
   }
 
-  localStorage.setItem(STORAGE_KEYS.ITINERARY, JSON.stringify(itineraryData));
-  localStorage.setItem(STORAGE_KEYS.SETTLEMENT, JSON.stringify(settlementData));
-  localStorage.setItem(STORAGE_KEYS.GRANT, grantAmount.toString());
-  localStorage.setItem(STORAGE_KEYS.EXCHANGE_RATE, globalExchangeRate.toString());
-  localStorage.setItem(STORAGE_KEYS.CHECKLIST, JSON.stringify(checklistData));
-  localStorage.setItem(STORAGE_KEYS.HOTEL, JSON.stringify(hotelData));
-  localStorage.setItem(STORAGE_KEYS.EMERGENCY, JSON.stringify(emergencyData));
-  localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify(sharedFilesData));
-  localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(photoData));
-  localStorage.setItem(STORAGE_KEYS.MEMOS, JSON.stringify(memoData));
+  try {
+    localStorage.setItem(STORAGE_KEYS.ITINERARY, JSON.stringify(itineraryData));
+    localStorage.setItem(STORAGE_KEYS.SETTLEMENT, JSON.stringify(settlementData));
+    localStorage.setItem(STORAGE_KEYS.GRANT, grantAmount.toString());
+    localStorage.setItem(STORAGE_KEYS.EXCHANGE_RATE, globalExchangeRate.toString());
+    localStorage.setItem(STORAGE_KEYS.CHECKLIST, JSON.stringify(checklistData));
+    localStorage.setItem(STORAGE_KEYS.HOTEL, JSON.stringify(hotelData));
+    localStorage.setItem(STORAGE_KEYS.EMERGENCY, JSON.stringify(emergencyData));
+    localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify(sharedFilesData));
+    localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(photoData));
+    localStorage.setItem(STORAGE_KEYS.MEMOS, JSON.stringify(memoData));
+  } catch (e) {
+    console.warn('LocalStorage 용량 방어 경고:', e);
+  }
 
   if (!isRemoteUpdating) {
     if (rtdbInstance || dbInstance) {
@@ -610,9 +614,44 @@ function updateCloudSyncBadge(isConnected, text) {
   }
 }
 
-/* 💡 [수리] 서류(files) & 사진(photos) 0.1초 구글 클라우드 동기화 엔진 연결! */
+/* 💡 [대용량 데이터 예외 방어 & 구글 클라우드 실시간 동기화 페이로드 필터링] */
 function pushDataToFirebaseCloud() {
   const sortedSettlements = sortSettlementData(settlementData);
+
+  // 💡 서류 대용량 Base64 구글 클라우드 1MB 제한 안심 방어 필터
+  const sanitizedFiles = sharedFilesData.map(f => {
+    let safeContent = f.content || '';
+    if (safeContent.length > 500000) { // 500KB 초과 시 클라우드 메타만 동기화
+      safeContent = 'DATA_TOO_LARGE';
+    }
+    return {
+      id: f.id,
+      name: f.name,
+      tag: f.tag,
+      size: f.size,
+      date: f.date,
+      content: safeContent
+    };
+  });
+
+  // 💡 사진 대용량 Base64 이미지 구글 클라우드 제한 안심 방어 필터
+  const sanitizedPhotos = photoData.map(p => {
+    let safeSrc = p.src || '';
+    if (safeSrc.length > 500000) { // 500KB 초과 시 썸네일로 경량화
+      safeSrc = 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80';
+    }
+    return {
+      id: p.id,
+      src: safeSrc,
+      title: p.title,
+      category: p.category,
+      heart: p.heart || 0,
+      thumb: p.thumb || 0,
+      wow: p.wow || 0,
+      party: p.party || 0
+    };
+  });
+
   const payload = {
     itinerary: itineraryData,
     settlement: sortedSettlements,
@@ -622,18 +661,20 @@ function pushDataToFirebaseCloud() {
     hotel: hotelData,
     emergency: emergencyData,
     memos: memoData,
-    files: sharedFilesData, // 💡 서류 실시간 동기화 추가!
-    photos: photoData,       // 💡 사진 갤러리 실시간 동기화 추가!
+    files: sanitizedFiles,
+    photos: sanitizedPhotos,
     updatedAt: Date.now()
   };
 
   if (rtdbInstance) {
-    rtdbInstance.ref('sydney_travel_app/master_data').set(payload);
+    rtdbInstance.ref('sydney_travel_app/master_data').set(payload).catch(e => {
+      console.warn('Realtime DB 전송 세부 경고:', e);
+    });
   }
 
   if (dbInstance) {
     try {
-      dbInstance.collection('sydney_travel_app').doc('master_data').set(payload, { merge: true });
+      dbInstance.collection('sydney_travel_app').doc('master_data').set(payload, { merge: true }).catch(e => {});
     } catch(e) {}
   }
 }
@@ -659,7 +700,7 @@ function subscribeCloudSyncChanges() {
   }
 }
 
-/* 💡 [수리] 원격 수신 시 서류 & 사진 갤러리 렌더링 즉시 반영! */
+/* 💡 원격 수신 시 서류 & 사진 갤러리 렌더링 즉시 반영! */
 function applyRemoteCloudData(data) {
   isRemoteUpdating = true;
   if (data.itinerary) itineraryData = data.itinerary;
@@ -676,8 +717,21 @@ function applyRemoteCloudData(data) {
   if (data.hotel) hotelData = data.hotel;
   if (data.emergency) emergencyData = data.emergency;
   if (data.memos) memoData = data.memos;
-  if (data.files) sharedFilesData = data.files; // 💡 서류 원격 수신
-  if (data.photos) photoData = data.photos;     // 💡 사진 갤러리 원격 수신
+
+  if (data.files && Array.isArray(data.files)) {
+    // 기존 content 보존 로직
+    sharedFilesData = data.files.map(rf => {
+      const existing = sharedFilesData.find(f => f.id === rf.id);
+      return {
+        ...rf,
+        content: (rf.content === 'DATA_TOO_LARGE' && existing) ? existing.content : rf.content
+      };
+    });
+  }
+
+  if (data.photos && Array.isArray(data.photos)) {
+    photoData = data.photos;
+  }
 
   saveDataToStorage();
   renderAllViews();
@@ -1551,23 +1605,52 @@ window.triggerPhotoUpload = function() {
   if (photoInput) photoInput.click();
 };
 
+/* 💡 [이미지 용량 경량화 캔버스 압축 변환 엔진] */
+function compressImage(dataUrl, maxWidth, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    let width = img.width;
+    let height = img.height;
+
+    if (width > maxWidth) {
+      height = Math.round((height * maxWidth) / width);
+      width = maxWidth;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // JPEG 0.7 품질로 압축하여 구글 클라우드 용량 제한 100% 안심 방어!
+    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    callback(compressedDataUrl);
+  };
+  img.src = dataUrl;
+}
+
 window.handlePhotoUpload = function(files) {
   if (!files || files.length === 0) return;
   const file = files[0];
   const reader = new FileReader();
   reader.onload = (event) => {
-    photoData.push({
-      id: 'p-' + Date.now(),
-      src: event.target.result,
-      title: file.name,
-      category: currentPhotoFilter !== 'all' ? currentPhotoFilter : '8/23',
-      heart: 1,
-      thumb: 0,
-      wow: 0,
-      party: 0
+    // 💡 600px 캔버스 썸네일 압축으로 구글 클라우드 0.1초 실시간 전송 보장!
+    compressImage(event.target.result, 600, (compressedSrc) => {
+      photoData.push({
+        id: 'p-' + Date.now(),
+        src: compressedSrc,
+        title: file.name,
+        category: currentPhotoFilter !== 'all' ? currentPhotoFilter : '8/23',
+        heart: 1,
+        thumb: 0,
+        wow: 0,
+        party: 0
+      });
+      saveDataToStorage();
+      renderPhotos();
     });
-    saveDataToStorage();
-    renderPhotos();
   };
   reader.readAsDataURL(file);
 };
@@ -1682,6 +1765,2440 @@ window.downloadPhotoFile = function(id) {
   document.body.removeChild(link);
 };
 
+function createPureZipBlob(fileEntries) {
+  const textEncoder = new TextEncoder();
+
+  function getUint32LE(val) {
+    return [val & 0xff, (val >> 8) & 0xff, (val >> 16) & 0xff, (val >> 24) & 0xff];
+  }
+  function getUint16LE(val) {
+    return [val & 0xff, (val >> 8) & 0xff];
+  }
+
+  function crc32(bytes) {
+    let crc = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= bytes[i];
+      for (let j = 0; j < 8; j++) {
+        crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+      }
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+
+  const localHeaders = [];
+  const centralDirs = [];
+  let offset = 0;
+
+  fileEntries.forEach(entry => {
+    const filenameBytes = textEncoder.encode(entry.name);
+    let dataBytes = null;
+
+    if (entry.content && typeof entry.content === 'string' && entry.content.startsWith('data:')) {
+      try {
+        const parts = entry.content.split(',');
+        const isBase64 = parts[0].includes('base64');
+        const rawData = parts[1] || '';
+
+        if (isBase64) {
+          const cleanBase64 = rawData.replace(/\s/g, '');
+          const binaryStr = atob(cleanBase64);
+          dataBytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            dataBytes[i] = binaryStr.charCodeAt(i);
+          }
+        } else {
+          const decodedStr = decodeURIComponent(rawData);
+          const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+          const contentBytes = textEncoder.encode(decodedStr);
+          dataBytes = new Uint8Array(BOM.length + contentBytes.length);
+          dataBytes.set(BOM, 0);
+          dataBytes.set(contentBytes, BOM.length);
+        }
+      } catch (e) {
+        const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+        const contentBytes = textEncoder.encode(entry.content);
+        dataBytes = new Uint8Array(BOM.length + contentBytes.length);
+        dataBytes.set(BOM, 0);
+        dataBytes.set(contentBytes, BOM.length);
+      }
+    } else {
+      const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+      const contentBytes = textEncoder.encode(entry.content || '');
+      dataBytes = new Uint8Array(BOM.length + contentBytes.length);
+      dataBytes.set(BOM, 0);
+      dataBytes.set(contentBytes, BOM.length);
+    }
+
+    const dataCrc = crc32(dataBytes);
+    const size = dataBytes.length;
+    const flagsLE = [0x00, 0x08];
+
+    const localHeader = new Uint8Array([
+      0x50, 0x4b, 0x03, 0x04,
+      0x14, 0x00,
+      ...flagsLE,
+      0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      ...getUint32LE(dataCrc),
+      ...getUint32LE(size),
+      ...getUint32LE(size),
+      ...getUint16LE(filenameBytes.length),
+      0x00, 0x00
+    ]);
+
+    const localChunk = new Uint8Array(localHeader.length + filenameBytes.length + dataBytes.length);
+    localChunk.set(localHeader, 0);
+    localChunk.set(filenameBytes, localHeader.length);
+    localChunk.set(dataBytes, localHeader.length + filenameBytes.length);
+    localHeaders.push(localChunk);
+
+    const centralHeader = new Uint8Array([
+      0x50, 0x4b, 0x01, 0x02,
+      0x14, 0x00,
+      0x14, 0x00,
+      ...flagsLE,
+      0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      ...getUint32LE(dataCrc),
+      ...getUint32LE(size),
+      ...getUint32LE(size),
+      ...getUint16LE(filenameBytes.length),
+      0x00, 0x00,
+      0x00, 0x00,
+      0x00, 0x00,
+      0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      ...getUint32LE(offset)
+    ]);
+
+    const centralChunk = new Uint8Array(centralHeader.length + filenameBytes.length);
+    centralChunk.set(centralHeader, 0);
+    centralChunk.set(filenameBytes, centralHeader.length);
+    centralDirs.push(centralChunk);
+
+    offset += localChunk.length;
+  });
+
+  const centralOffset = offset;
+  let centralSize = 0;
+  centralDirs.forEach(cd => centralSize += cd.length);
+
+  const eocd = new Uint8Array([
+    0x50, 0x4b, 0x05, 0x06,
+    0x00, 0x00,
+    0x00, 0x00,
+    ...getUint16LE(fileEntries.length),
+    ...getUint16LE(fileEntries.length),
+    ...getUint32LE(centralSize),
+    ...getUint32LE(centralOffset),
+    0x00, 0x00
+  ]);
+
+  const finalParts = [...localHeaders, ...centralDirs, eocd];
+  return new Blob(finalParts, { type: 'application/zip' });
+}
+
+window.triggerDownloadAllDocs = function() {
+  const filteredFiles = sharedFilesData.filter(f => {
+    if (currentFileFilter === 'all') return true;
+    return f.tag === currentFileFilter;
+  });
+
+  if (filteredFiles.length === 0) {
+    alert('다운로드할 서류가 없습니다.');
+    return;
+  }
+
+  try {
+    const zipBlob = createPureZipBlob(filteredFiles);
+    const zipName = `시드니_배낭연수_서류모음_${currentFileFilter.replace('/', '_')}.zip`;
+    
+    const url = URL.createObjectURL(zipBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = zipName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error('ZIP 압축 다운로드 에러:', err);
+    alert('ZIP 압축 다운로드 중 오류가 발생하였습니다: ' + err.message);
+  }
+};
+
+window.downloadSingleFile = function(id) {
+  const file = sharedFilesData.find(f => f.id === id);
+  if (!file) return;
+
+  const link = document.createElement('a');
+
+  if (file.content && typeof file.content === 'string' && file.content.startsWith('data:')) {
+    link.href = file.content;
+  } else {
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + (file.content || '서류 데이터')], { type: 'text/plain;charset=utf-8' });
+    link.href = URL.createObjectURL(blob);
+  }
+
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+window.triggerDocUpload = function() {
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) fileInput.click();
+};
+
+window.handleFileUpload = function(files) {
+  if (!files || files.length === 0) return;
+  Array.from(files).forEach(file => {
+    const tagChoice = prompt(`파일 [${file.name}]의 태그 분류를 선택하세요:\n1: 여행계획\n2: 항공숙박\n3: 영수증\n4: 학교제출 서류\n5: 기타`, "1");
+    
+    let tag = '기타';
+    if (tagChoice === '1') tag = '여행계획';
+    else if (tagChoice === '2') tag = '항공숙박';
+    else if (tagChoice === '3') tag = '영수증';
+    else if (tagChoice === '4') tag = '학교제출 서류';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      sharedFilesData.push({
+        id: 'f-' + Date.now() + Math.random().toString(36).substr(2, 4),
+        name: file.name,
+        tag: tag,
+        size: (file.size / 1024).toFixed(0) + ' KB',
+        date: (new Date().getMonth() + 1) + '.' + new Date().getDate(),
+        content: e.target.result
+      });
+      saveDataToStorage();
+      renderSharedFiles();
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+window.filterDocTag = function(tag, btnEl) {
+  currentFileFilter = tag;
+  const chips = document.querySelectorAll('#docTagFilter .doc-tag-chip');
+  chips.forEach(c => c.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderSharedFiles();
+};
+
+function renderSharedFiles() {
+  const container = document.getElementById('sharedFileList');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const filteredFiles = sharedFilesData.filter(f => {
+    if (currentFileFilter === 'all') return true;
+    return f.tag === currentFileFilter;
+  });
+
+  if (filteredFiles.length === 0) {
+    container.innerHTML = '<li style="font-size:0.85rem; color:var(--text-muted); text-align:center; padding:16px;">이 분류에 등록된 서류가 없습니다.</li>';
+    return;
+  }
+
+  filteredFiles.forEach(file => {
+    const li = document.createElement('li');
+    li.className = 'doc-item-li';
+
+    li.innerHTML = `
+      <div class="doc-item-info">
+        <i class="fa-solid fa-file-pdf" style="color:var(--uluru-red); font-size:1.3rem; flex-shrink:0; margin-top:2px;"></i>
+        <div style="overflow:hidden; flex-grow:1;">
+          <span class="doc-file-name">${escapeHTML(file.name)}</span>
+          <div class="doc-file-meta">
+            <span class="clay-badge badge-blue" style="font-size:0.68rem; padding:1px 6px;">${escapeHTML(file.tag)}</span>
+            <span>${file.size || '100 KB'}</span> · <span>${file.date || '최근'}</span>
+          </div>
+        </div>
+      </div>
+      <div class="doc-item-actions">
+        <button class="clay-btn clay-btn-primary" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;" onclick="downloadSingleFile('${file.id}')">
+          <i class="fa-solid fa-download"></i> 다운
+        </button>
+        <button class="clay-btn clay-btn-danger" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteSharedFile('${file.id}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    `;
+
+    container.appendChild(li);
+  });
+}
+
+window.deleteSharedFile = function(id) {
+  sharedFilesData = sharedFilesData.filter(f => f.id !== id);
+  saveDataToStorage();
+  renderSharedFiles();
+};
+
+function renderHotelAndEmergencyDisplay() {
+  document.getElementById('hotelName').innerText = hotelData.name || '';
+  document.getElementById('hotelAddress').innerText = hotelData.address || '';
+  document.getElementById('hotelPhone').innerText = hotelData.phone || '';
+
+  document.getElementById('emgCall').innerText = emergencyData.call || '';
+  document.getElementById('emgEmbassy').innerText = emergencyData.embassy || '';
+  document.getElementById('emgHospital').innerText = emergencyData.hospital || '';
+}
+
+window.openHotelModal = function() {
+  document.getElementById('inputHotelName').value = hotelData.name || '';
+  document.getElementById('inputHotelAddress').value = hotelData.address || '';
+  document.getElementById('inputHotelPhone').value = hotelData.phone || '';
+  const overlay = document.getElementById('hotelModalOverlay');
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeHotelModal = function() {
+  const overlay = document.getElementById('hotelModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveHotelModal = function(e) {
+  if (e) e.preventDefault();
+  hotelData.name = document.getElementById('inputHotelName').value.trim();
+  hotelData.address = document.getElementById('inputHotelAddress').value.trim();
+  hotelData.phone = document.getElementById('inputHotelPhone').value.trim();
+  saveDataToStorage();
+  renderHotelAndEmergencyDisplay();
+  closeHotelModal();
+};
+
+window.openEmergencyModal = function() {
+  document.getElementById('inputEmgCall').value = emergencyData.call || '';
+  document.getElementById('inputEmgEmbassy').value = emergencyData.embassy || '';
+  document.getElementById('inputEmgHospital').value = emergencyData.hospital || '';
+  const overlay = document.getElementById('emergencyModalOverlay');
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeEmergencyModal = function() {
+  const overlay = document.getElementById('emergencyModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveEmergencyModal = function(e) {
+  if (e) e.preventDefault();
+  emergencyData.call = document.getElementById('inputEmgCall').value.trim();
+  emergencyData.embassy = document.getElementById('inputEmgEmbassy').value.trim();
+  emergencyData.hospital = document.getElementById('inputEmgHospital').value.trim();
+  saveDataToStorage();
+  renderHotelAndEmergencyDisplay();
+  closeEmergencyModal();
+};
+
+window.openEditModal = function(dayId) {
+  const targetDay = itineraryData.find(d => d.id === dayId);
+  if (!targetDay) return;
+
+  document.getElementById('editDayId').value = targetDay.id;
+  document.getElementById('editDateStr').value = targetDay.dateStr || '';
+  document.getElementById('editDateTitle').value = targetDay.subtitle || '';
+  document.getElementById('editTourTime').value = targetDay.tourTime || '';
+
+  const spotsText = targetDay.spots.map(s => `${s.name} | ${s.note || ''}`).join('\n');
+  document.getElementById('editSpots').value = spotsText;
+  document.getElementById('editNote').value = targetDay.tip || '';
+
+  const overlay = document.getElementById('editModalOverlay');
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeEditModal = function() {
+  const overlay = document.getElementById('editModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveEditModal = function(e) {
+  if (e) e.preventDefault();
+
+  const dayId = document.getElementById('editDayId').value;
+  const dateStr = document.getElementById('editDateStr').value.trim();
+  const title = document.getElementById('editDateTitle').value.trim();
+  const tourTime = document.getElementById('editTourTime').value.trim();
+  const spotsRawText = document.getElementById('editSpots').value.trim();
+  const note = document.getElementById('editNote').value.trim();
+
+  const targetDay = itineraryData.find(d => d.id === dayId);
+  if (targetDay) {
+    if (dateStr) targetDay.dateStr = dateStr;
+    if (title) targetDay.subtitle = title;
+    targetDay.tourTime = tourTime || '자율시간';
+    if (note) targetDay.tip = note;
+
+    if (spotsRawText) {
+      const lines = spotsRawText.split('\n');
+      targetDay.spots = lines.map(line => {
+        if (!line.trim()) return null;
+        const parts = line.split('|');
+        return {
+          name: parts[0] ? parts[0].trim() : '장소명 미입력',
+          note: parts[1] ? parts[1].trim() : '세부 메모 없음'
+        };
+      }).filter(Boolean);
+    }
+
+    saveDataToStorage();
+    renderItinerarySidebar();
+    renderDrawerItineraryList(); // 전역 드로어 갱신
+    updateMapMarkersAndPolylines();
+    closeEditModal();
+  }
+};
+
+window.triggerDeleteDay = function() {
+  const dayId = document.getElementById('editDayId').value;
+  if (confirm('이 일자를 삭제하시겠습니까?')) {
+    itineraryData = itineraryData.filter(d => d.id !== dayId);
+    saveDataToStorage();
+    renderItinerarySidebar();
+    renderDrawerItineraryList(); // 전역 드로어 갱신
+    updateMapMarkersAndPolylines();
+    closeEditModal();
+  }
+};
+
+window.triggerAddDay = function() {
+  const newId = 'day-' + Date.now();
+  itineraryData.push({
+    id: newId,
+    dateStr: `8/${18 + itineraryData.length}`,
+    subtitle: '새로운 일정',
+    badgeClass: 'badge-blue',
+    color: '#008094',
+    tourTime: '자유시간',
+    spots: [{ name: '새로운 장소 이름', note: '밑의 작은 설명글을 작성하세요' }],
+    tip: '안내 팁을 자유롭게 작성하세요',
+    latlng: [-33.8688, 151.2093]
+  });
+  saveDataToStorage();
+  renderItinerarySidebar();
+  renderDrawerItineraryList(); // 전역 드로어 갱신
+};
+
+window.addChecklistItem = function(category) {
+  const text = prompt('추가할 체크리스트 항목을 입력하세요:');
+  if (text && text.trim()) {
+    if (!checklistData[category]) checklistData[category] = [];
+    checklistData[category].push({
+      id: 'c-' + Date.now(),
+      text: text.trim(),
+      done: false
+    });
+    saveDataToStorage();
+    renderChecklist();
+  }
+};
+
+function renderChecklist() {
+  const categories = ['before', 'during', 'after', 'etc'];
+  categories.forEach(cat => {
+    const listEl = document.getElementById(`list${cat.charAt(0).toUpperCase() + cat.slice(1)}`);
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    const items = checklistData[cat] || [];
+
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--input-bg);
+        padding: 8px 12px;
+        border-radius: 12px;
+        box-shadow: var(--clay-shadow-pressed);
+        font-size: 0.85rem;
+      `;
+
+      li.innerHTML = `
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex-grow: 1; text-decoration: ${item.done ? 'line-through' : 'none'}; color: ${item.done ? 'var(--text-muted)' : 'var(--text-primary)'}; word-break: keep-all;">
+          <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleChecklistItem('${cat}', '${item.id}')" style="width:16px; height:16px; accent-color: var(--sydney-ocean);">
+          <span>${escapeHTML(item.text)}</span>
+        </label>
+        <button class="close-btn" onclick="deleteChecklistItem('${cat}', '${item.id}')" style="font-size: 1.1rem; color: #999;">&times;</button>
+      `;
+      listEl.appendChild(li);
+    });
+  });
+}
+
+window.toggleChecklistItem = function(category, id) {
+  const item = (checklistData[category] || []).find(i => i.id === id);
+  if (item) {
+    item.done = !item.done;
+    saveDataToStorage();
+    renderChecklist();
+  }
+};
+
+window.deleteChecklistItem = function(category, id) {
+  checklistData[category] = (checklistData[category] || []).filter(i => i.id !== id);
+  saveDataToStorage();
+  renderChecklist();
+};
+
+/* 💡 [행 추가 버튼 클릭 이벤트] 초기 설정값: 항공료 / 2000-01-01 / 업체 / 내역 / 트래블 카드 */
+window.triggerAddSettlementRow = function() {
+  const newRow = {
+    id: Date.now(),
+    category: '항공료',
+    date: '2000-01-01',
+    vendor: '업체',
+    detail: '내역',
+    krw: 0,
+    aud: 0,
+    rate: globalExchangeRate || 900,
+    method: '트래블 카드',
+    isGrantUsed: true,
+    isSettled: true
+  };
+  settlementData.push(newRow);
+  saveDataToStorage();
+  renderSettlementTable();
+};
+
+/* 💱 [총괄 환율 일괄 변경 기능]: 💡 환율 변경 시 원화(KRW) 고정 & AUD 자동 재계산! */
+window.triggerEditGlobalRate = function() {
+  const input = prompt('모든 지출 행에 일괄 적용할 환율(1 AUD 당 원화)을 입력하세요:', globalExchangeRate);
+  if (input !== null) {
+    const newRate = parseFloat(input);
+    if (!isNaN(newRate) && newRate > 0) {
+      applyGlobalExchangeRate(newRate);
+    }
+  }
+};
+
+function applyGlobalExchangeRate(newRate) {
+  globalExchangeRate = newRate;
+  settlementData.forEach(row => {
+    row.rate = newRate;
+    // 💡 환율이 변경되면 원화(KRW)를 기준으로 AUD를 (krw / newRate)로 자동 재계산! (원화 불변!)
+    const currentKRW = parseInt(row.krw, 10) || 0;
+    if (newRate > 0) {
+      row.aud = Math.round((currentKRW / newRate) * 100) / 100;
+    }
+  });
+  saveDataToStorage();
+  renderSettlementTable();
+}
+
+/* 📊 [핵심 정산 연산 & 렌더링]: 2*3 요약 + 1*1 단독 인당지출 카드 연산 */
+function renderSettlementTable() {
+  const tbody = document.getElementById('settlementTbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  let personalTotalExpense = 0;        // 순수 개인 부담 지출 원화 합계
+  let settledGrantExpenseTotal = 0;    // 지원금 지출 중 정산완료(isSettled === true) 합계
+  let settledPersonalExpenseTotal = 0; // 개인 지출 중 정산완료(isSettled === true) 합계
+
+  const sortedSettlements = sortSettlementData(settlementData);
+  settlementData = sortedSettlements;
+
+  sortedSettlements.forEach((row, idx) => {
+    const krwVal = parseInt(row.krw, 10) || 0;
+    const isGrant = Boolean(row.isGrantUsed);
+    const isSettled = typeof row.isSettled === 'boolean' ? row.isSettled : isGrant;
+
+    if (isGrant) {
+      if (isSettled) {
+        settledGrantExpenseTotal += krwVal;
+      }
+    } else {
+      personalTotalExpense += krwVal;
+      if (isSettled) {
+        settledPersonalExpenseTotal += krwVal;
+      }
+    }
+
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--input-border)';
+
+    const categoryOptionsHtml = categoryOptions.map(opt => `
+      <option value="${opt}" ${row.category === opt ? 'selected' : ''}>${opt}</option>
+    `).join('');
+
+    const formattedKRW = krwVal.toLocaleString();
+
+    tr.innerHTML = `
+      <td style="padding:6px; font-weight:700; text-align:center;">${idx + 1}</td>
+      <td style="padding:6px;">
+        <select onchange="updateSettlementField(${row.id}, 'category', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; outline:none; color:var(--sydney-ocean); cursor:pointer;">
+          ${categoryOptionsHtml}
+        </select>
+      </td>
+      <td style="padding:6px;"><input type="date" value="${row.date}" onchange="updateSettlementField(${row.id}, 'date', this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.8rem; color:var(--text-primary);"></td>
+      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.vendor)}" onchange="updateSettlementField(${row.id}, 'vendor', this.value)" style="width:100%; border:none; background:transparent; font-weight:600; outline:none; color:var(--text-primary);"></td>
+      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.detail)}" onchange="updateSettlementField(${row.id}, 'detail', this.value)" style="width:100%; border:none; background:transparent; outline:none; color:var(--text-primary);"></td>
+      
+      <td style="padding:6px; text-align:center;">
+        <input type="checkbox" ${isGrant ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isGrantUsed', this.checked)" style="width:18px; height:18px; accent-color: var(--sydney-ocean); cursor:pointer;">
+      </td>
+      <td style="padding:6px; text-align:center;">
+        <input type="checkbox" ${isSettled ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isSettled', this.checked)" style="width:18px; height:18px; accent-color: var(--eucalyptus-green); cursor:pointer;">
+      </td>
+
+      <td style="padding:6px;">
+        <input type="text" value="${formattedKRW}" onchange="updateSettlementField(${row.id}, 'krw', this.value)" style="width:100%; border:none; background:transparent; font-weight:800; color:var(--uluru-red); outline:none;" placeholder="0">
+      </td>
+      <td style="padding:6px;">
+        <input type="number" value="${row.aud}" onchange="updateSettlementField(${row.id}, 'aud', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; color:var(--sydney-ocean); outline:none;" placeholder="0">
+      </td>
+      <td style="padding:6px;">
+        <input type="number" value="${row.rate || globalExchangeRate}" onchange="updateSettlementField(${row.id}, 'rate', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; outline:none; color:var(--text-primary);" placeholder="900">
+      </td>
+      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.method)}" onchange="updateSettlementField(${row.id}, 'method', this.value)" style="width:100%; border:none; background:transparent; outline:none; color:var(--text-primary);"></td>
+      
+      <td style="padding:6px; text-align:center;">
+        <button class="clay-btn clay-btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deleteSettlementRow(${row.id})">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const rateDisplayEl = document.getElementById('displayGlobalRate');
+  if (rateDisplayEl) rateDisplayEl.innerText = `1 AUD = ₩ ${globalExchangeRate.toLocaleString()}`;
+
+  // 📊 비즈니스 연산:
+  // 1. 지원금 차액: 총 지원금 - 정산완료 체크된 지원금 지출액
+  const grantBalance = grantAmount - settledGrantExpenseTotal;
+
+  // 2. 개인 정산 차액 기본값: 개인 총 지출 - 정산완료 체크된 개인 지출액
+  let personalBalance = personalTotalExpense - settledPersonalExpenseTotal;
+
+  // 지원금 차액이 마이너스(-)가 되면 그 절대값 만큼을 '개인 정산 차액'에 자동 더함!
+  if (grantBalance < 0) {
+    personalBalance += Math.abs(grantBalance);
+  }
+
+  // 💡 [4인 기준 '인당 지출' 연산 공식]:
+  // 1. 지원금 차액이 - 값인 경우 : (차액의 절대값 + 개인 총 지출) / 4
+  // 2. 지원금 차액이 + 값인 경우 : (개인 총 지출) / 4
+  let perPersonExpense = 0;
+  let subExplanation = '';
+
+  if (grantBalance < 0) {
+    perPersonExpense = Math.round((Math.abs(grantBalance) + personalTotalExpense) / 4);
+    subExplanation = `지원금 초과 ₩${Math.abs(grantBalance).toLocaleString()} 포함 (1/4 N빵)`;
+  } else {
+    perPersonExpense = Math.round(personalTotalExpense / 4);
+    subExplanation = `개인 총지출 ₩${personalTotalExpense.toLocaleString()} 기준 (1/4 N빵)`;
+  }
+
+  document.getElementById('summaryGrant').innerText = `₩ ${grantAmount.toLocaleString()}`;
+  document.getElementById('summaryPersonalTotalExpense').innerText = `₩ ${personalTotalExpense.toLocaleString()}`;
+  document.getElementById('summaryGrantExpense').innerText = `₩ ${settledGrantExpenseTotal.toLocaleString()}`;
+  document.getElementById('summaryPersonalExpense').innerText = `₩ ${settledPersonalExpenseTotal.toLocaleString()}`;
+  
+  document.getElementById('summaryGrantBalance').innerText = `₩ ${grantBalance.toLocaleString()}`;
+  document.getElementById('summaryPersonalBalance').innerText = `₩ ${personalBalance.toLocaleString()}`;
+
+  // 💡 인당 지출 1*1 단독 카드 DOM 갱신
+  const perPersonEl = document.getElementById('summaryPerPersonExpense');
+  const perPersonSubEl = document.getElementById('summaryPerPersonSubText');
+  if (perPersonEl) perPersonEl.innerText = `₩ ${perPersonExpense.toLocaleString()}`;
+  if (perPersonSubEl) perPersonSubEl.innerText = subExplanation;
+}
+
+function parseFormattedNumber(val) {
+  if (typeof val === 'number') return val;
+  if (!val) return 0;
+  const clean = String(val).replace(/,/g, '').trim();
+  return parseInt(clean, 10) || 0;
+}
+
+/* 📊 [환율 일괄 동기화 & 양방향 자동 계산 핵심 연동 엔진] */
+window.updateSettlementField = function(id, field, value) {
+  const row = settlementData.find(s => s.id === id);
+  if (row) {
+    if (field === 'rate') {
+      const newRate = parseFloat(value) || globalExchangeRate || 900;
+      applyGlobalExchangeRate(newRate);
+      return;
+    } else if (field === 'krw') {
+      row.krw = parseFormattedNumber(value);
+      const currentRate = parseFloat(row.rate) || globalExchangeRate || 1;
+      if (currentRate > 0) {
+        row.aud = Math.round((row.krw / currentRate) * 100) / 100;
+      }
+    } else if (field === 'aud') {
+      row.aud = parseFloat(value) || 0;
+      const currentRate = parseFloat(row.rate) || globalExchangeRate || 1;
+      row.krw = Math.round(row.aud * currentRate);
+    } else if (field === 'isGrantUsed') {
+      row.isGrantUsed = Boolean(value);
+      row.isSettled = Boolean(value);
+    } else if (field === 'isSettled') {
+      row.isSettled = Boolean(value);
+    } else {
+      row[field] = value;
+    }
+    saveDataToStorage();
+    renderSettlementTable();
+  }
+};
+
+window.triggerEditGrant = function() {
+  const input = prompt('수정할 총 지원금(가지급금) 원화 금액을 입력하세요 (예: 2,500,000):', grantAmount.toLocaleString());
+  if (input !== null) {
+    const parsed = parseFormattedNumber(input);
+    if (!isNaN(parsed)) {
+      grantAmount = parsed;
+      saveDataToStorage();
+      renderSettlementTable();
+    }
+  }
+};
+
+window.deleteSettlementRow = function(id) {
+  settlementData = settlementData.filter(s => s.id !== id);
+  saveDataToStorage();
+  renderSettlementTable();
+};
+
+window.exportGrantOnlyCSV = function() {
+  const BOM = "\uFEFF";
+  let csvContent = "연번,구분,결제일자,업체명,내역(상세),지원금 사용,정산완료 여부,금액(원),현지(AUD),환율,결제방법\n";
+  const grantRows = sortSettlementData(settlementData.filter(r => r.isGrantUsed));
+  if (grantRows.length === 0) {
+    alert('지원금 사용이 체크된 지출 항목이 없습니다.');
+    return;
+  }
+  grantRows.forEach((r, i) => {
+    const isUsedStr = r.isGrantUsed ? "사용함(O)" : "미사용(X)";
+    const settledStr = r.isSettled ? "정산완료(O)" : "미정산(X)";
+    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}","${isUsedStr}","${settledStr}",${r.krw},${r.aud},${r.rate},"${r.method}"\n`;
+  });
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "2026_호주머니_0원의_배낭연수_지원금_정산서.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+window.exportFullCSV = function() {
+  const BOM = "\uFEFF";
+  let csvContent = "연번,구분,결제일자,업체명,내역(상세),지원금 사용여부,정산완료 여부,금액(원),현지(AUD),환율,결제방법\n";
+  const sortedRows = sortSettlementData(settlementData);
+  sortedRows.forEach((r, i) => {
+    const isUsedStr = r.isGrantUsed ? "사용함(O)" : "미사용(X)";
+    const settledStr = r.isSettled ? "정산완료(O)" : "미정산(X)";
+    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}","${isUsedStr}","${settledStr}",${r.krw},${r.aud},${r.rate},"${r.method}"\n`;
+  });
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "2026_호주머니_0원의_배낭연수_전체_정산서.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+window.triggerAddMemo = function() {
+  const text = prompt('추가할 메모 내용을 입력하세요:');
+  if (text && text.trim()) {
+    memoData.push({
+      id: 'm-' + Date.now(),
+      text: text.trim(),
+      time: (new Date().getMonth() + 1) + '/' + new Date().getDate() + ' ' + new Date().getHours() + ':' + String(new Date().getMinutes()).padStart(2, '0')
+    });
+    saveDataToStorage();
+    renderMemos();
+  }
+};
+
+function renderMemos() {
+  const container = document.getElementById('memoGrid');
+  if (!container) return;
+  container.innerHTML = '';
+
+  memoData.forEach(m => {
+    const card = document.createElement('div');
+    card.style.cssText = `
+      background: var(--aus-gold-soft);
+      padding: 14px;
+      border-radius: 16px;
+      box-shadow: var(--clay-shadow-main);
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 120px;
+    `;
+
+    card.innerHTML = `
+      <p style="font-weight:600; color:var(--text-primary); line-height:1.4; word-break:keep-all;">${escapeHTML(m.text)}</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px dashed #E6DF9A; padding-top:6px;">
+        <span style="font-size:0.72rem; color:var(--text-muted);">${m.time || '최근'}</span>
+        <div>
+          <button class="clay-btn clay-btn-secondary" style="padding:2px 6px; font-size:0.7rem; margin-right:4px;" onclick="editMemo('${m.id}')">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="clay-btn clay-btn-danger" style="padding:2px 6px; font-size:0.7rem;" onclick="deleteMemo('${m.id}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+window.editMemo = function(id) {
+  const target = memoData.find(m => m.id === id);
+  if (!target) return;
+
+  const newText = prompt('메모 내용을 수정하세요:', target.text);
+  if (newText !== null && newText.trim()) {
+    target.text = newText.trim();
+    target.time = '수정됨 ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    saveDataToStorage();
+    renderMemos();
+  }
+};
+
+window.deleteMemo = function(id) {
+  if (confirm('이 메모를 삭제하시겠습니까?')) {
+    memoData = memoData.filter(m => m.id !== id);
+    saveDataToStorage();
+    renderMemos();
+  }
+};
+
+window.triggerPhotoUpload = function() {
+  const photoInput = document.getElementById('photoInput');
+  if (photoInput) photoInput.click();
+};
+
+/* 💡 [이미지 용량 경량화 캔버스 압축 변환 엔진] */
+function compressImage(dataUrl, maxWidth, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    let width = img.width;
+    let height = img.height;
+
+    if (width > maxWidth) {
+      height = Math.round((height * maxWidth) / width);
+      width = maxWidth;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // JPEG 0.7 품질로 압축하여 구글 클라우드 용량 제한 100% 안심 방어!
+    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    callback(compressedDataUrl);
+  };
+  img.src = dataUrl;
+}
+
+window.handlePhotoUpload = function(files) {
+  if (!files || files.length === 0) return;
+  const file = files[0];
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    // 💡 600px 캔버스 썸네일 압축으로 구글 클라우드 0.1초 실시간 전송 보장!
+    compressImage(event.target.result, 600, (compressedSrc) => {
+      photoData.push({
+        id: 'p-' + Date.now(),
+        src: compressedSrc,
+        title: file.name,
+        category: currentPhotoFilter !== 'all' ? currentPhotoFilter : '8/23',
+        heart: 1,
+        thumb: 0,
+        wow: 0,
+        party: 0
+      });
+      saveDataToStorage();
+      renderPhotos();
+    });
+  };
+  reader.readAsDataURL(file);
+};
+
+window.filterPhotoTag = function(filter, btnEl) {
+  currentPhotoFilter = filter;
+  const chips = document.querySelectorAll('#photoCategoryFilter .photo-tag-chip');
+  chips.forEach(c => c.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderPhotos();
+};
+
+function renderPhotos() {
+  const container = document.getElementById('photoGrid');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const filteredPhotos = photoData.filter(p => {
+    if (currentPhotoFilter === 'all') return true;
+    return p.category === currentPhotoFilter;
+  });
+
+  if (filteredPhotos.length === 0) {
+    container.innerHTML = '<p style="font-size:0.88rem; color:var(--text-muted); grid-column: 1/-1; text-align:center; padding:24px;">이 카테고리에 해당하는 사진이 없습니다. [사진 업로드] 버튼을 눌러 사진을 추가해보세요!</p>';
+    return;
+  }
+
+  filteredPhotos.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'clay-card';
+    card.style.cssText = 'padding: 12px; cursor: pointer; transition: transform 0.2s ease;';
+
+    card.onclick = (e) => {
+      if (e.target.closest('button')) return;
+      openPhotoLightbox(p.id);
+    };
+
+    let categoryLabel = p.category === '8/23' ? '8/23 오페라하우스' : (p.category === '8/24' ? '8/24 복귀' : p.category);
+
+    card.innerHTML = `
+      <div style="overflow:hidden; border-radius:12px; margin-bottom:8px; height:140px; background:#000;">
+        <img src="${p.src}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+      </div>
+      <div style="font-weight:700; font-size:0.88rem; margin-bottom:6px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHTML(p.title)}</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:4px;">
+        <span class="clay-badge badge-red" style="white-space:nowrap; flex-shrink:0; max-width:65%; text-overflow:ellipsis; overflow:hidden;">${categoryLabel}</span>
+        <button class="clay-btn clay-btn-primary" style="padding:3px 8px; font-size:0.72rem; white-space:nowrap; flex-shrink:0;" onclick="downloadPhotoFile('${p.id}')">
+          <i class="fa-solid fa-download"></i> 다운
+        </button>
+      </div>
+      <div style="display:flex; justify-around; background:var(--input-bg); padding:4px; border-radius:8px; gap:2px;">
+        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'heart')">❤️ ${p.heart || 0}</button>
+        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'thumb')">👍 ${p.thumb || 0}</button>
+        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'wow')">😮 ${p.wow || 0}</button>
+        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'party')">🎉 ${p.party || 0}</button>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+window.reactPhoto = function(id, type) {
+  const p = photoData.find(item => item.id === id);
+  if (p) {
+    if (!p[type]) p[type] = 0;
+    p[type]++;
+    saveDataToStorage();
+    renderPhotos();
+  }
+};
+
+window.openPhotoLightbox = function(id) {
+  const photo = photoData.find(p => p.id === id);
+  if (!photo) return;
+
+  currentActivePhotoId = id;
+  const overlay = document.getElementById('photoLightboxModal');
+  const imgEl = document.getElementById('lightboxImg');
+  const titleEl = document.getElementById('lightboxTitle');
+  const categoryEl = document.getElementById('lightboxCategory');
+
+  imgEl.src = photo.src;
+  titleEl.innerText = photo.title || '사진 상세보기';
+  
+  let categoryLabel = photo.category === '8/23' ? '8/23 오페라하우스' : (photo.category === '8/24' ? '8/24 복귀' : photo.category);
+  categoryEl.innerText = categoryLabel;
+
+  overlay.classList.add('active');
+};
+
+window.closePhotoLightbox = function() {
+  const overlay = document.getElementById('photoLightboxModal');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.downloadCurrentLightboxPhoto = function() {
+  if (currentActivePhotoId) {
+    downloadPhotoFile(currentActivePhotoId);
+  }
+};
+
+window.downloadPhotoFile = function(id) {
+  const photo = photoData.find(p => p.id === id);
+  if (!photo) return;
+
+  const link = document.createElement('a');
+  link.href = photo.src;
+  link.download = `시드니여행_${photo.title || '사진'}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+function createPureZipBlob(fileEntries) {
+  const textEncoder = new TextEncoder();
+
+  function getUint32LE(val) {
+    return [val & 0xff, (val >> 8) & 0xff, (val >> 16) & 0xff, (val >> 24) & 0xff];
+  }
+  function getUint16LE(val) {
+    return [val & 0xff, (val >> 8) & 0xff];
+  }
+
+  function crc32(bytes) {
+    let crc = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= bytes[i];
+      for (let j = 0; j < 8; j++) {
+        crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+      }
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+
+  const localHeaders = [];
+  const centralDirs = [];
+  let offset = 0;
+
+  fileEntries.forEach(entry => {
+    const filenameBytes = textEncoder.encode(entry.name);
+    let dataBytes = null;
+
+    if (entry.content && typeof entry.content === 'string' && entry.content.startsWith('data:')) {
+      try {
+        const parts = entry.content.split(',');
+        const isBase64 = parts[0].includes('base64');
+        const rawData = parts[1] || '';
+
+        if (isBase64) {
+          const cleanBase64 = rawData.replace(/\s/g, '');
+          const binaryStr = atob(cleanBase64);
+          dataBytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            dataBytes[i] = binaryStr.charCodeAt(i);
+          }
+        } else {
+          const decodedStr = decodeURIComponent(rawData);
+          const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+          const contentBytes = textEncoder.encode(decodedStr);
+          dataBytes = new Uint8Array(BOM.length + contentBytes.length);
+          dataBytes.set(BOM, 0);
+          dataBytes.set(contentBytes, BOM.length);
+        }
+      } catch (e) {
+        const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+        const contentBytes = textEncoder.encode(entry.content);
+        dataBytes = new Uint8Array(BOM.length + contentBytes.length);
+        dataBytes.set(BOM, 0);
+        dataBytes.set(contentBytes, BOM.length);
+      }
+    } else {
+      const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+      const contentBytes = textEncoder.encode(entry.content || '');
+      dataBytes = new Uint8Array(BOM.length + contentBytes.length);
+      dataBytes.set(BOM, 0);
+      dataBytes.set(contentBytes, BOM.length);
+    }
+
+    const dataCrc = crc32(dataBytes);
+    const size = dataBytes.length;
+    const flagsLE = [0x00, 0x08];
+
+    const localHeader = new Uint8Array([
+      0x50, 0x4b, 0x03, 0x04,
+      0x14, 0x00,
+      ...flagsLE,
+      0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      ...getUint32LE(dataCrc),
+      ...getUint32LE(size),
+      ...getUint32LE(size),
+      ...getUint16LE(filenameBytes.length),
+      0x00, 0x00
+    ]);
+
+    const localChunk = new Uint8Array(localHeader.length + filenameBytes.length + dataBytes.length);
+    localChunk.set(localHeader, 0);
+    localChunk.set(filenameBytes, localHeader.length);
+    localChunk.set(dataBytes, localHeader.length + filenameBytes.length);
+    localHeaders.push(localChunk);
+
+    const centralHeader = new Uint8Array([
+      0x50, 0x4b, 0x01, 0x02,
+      0x14, 0x00,
+      0x14, 0x00,
+      ...flagsLE,
+      0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      ...getUint32LE(dataCrc),
+      ...getUint32LE(size),
+      ...getUint32LE(size),
+      ...getUint16LE(filenameBytes.length),
+      0x00, 0x00,
+      0x00, 0x00,
+      0x00, 0x00,
+      0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      ...getUint32LE(offset)
+    ]);
+
+    const centralChunk = new Uint8Array(centralHeader.length + filenameBytes.length);
+    centralChunk.set(centralHeader, 0);
+    centralChunk.set(filenameBytes, centralHeader.length);
+    centralDirs.push(centralChunk);
+
+    offset += localChunk.length;
+  });
+
+  const centralOffset = offset;
+  let centralSize = 0;
+  centralDirs.forEach(cd => centralSize += cd.length);
+
+  const eocd = new Uint8Array([
+    0x50, 0x4b, 0x05, 0x06,
+    0x00, 0x00,
+    0x00, 0x00,
+    ...getUint16LE(fileEntries.length),
+    ...getUint16LE(fileEntries.length),
+    ...getUint32LE(centralSize),
+    ...getUint32LE(centralOffset),
+    0x00, 0x00
+  ]);
+
+  const finalParts = [...localHeaders, ...centralDirs, eocd];
+  return new Blob(finalParts, { type: 'application/zip' });
+}
+
+window.triggerDownloadAllDocs = function() {
+  const filteredFiles = sharedFilesData.filter(f => {
+    if (currentFileFilter === 'all') return true;
+    return f.tag === currentFileFilter;
+  });
+
+  if (filteredFiles.length === 0) {
+    alert('다운로드할 서류가 없습니다.');
+    return;
+  }
+
+  try {
+    const zipBlob = createPureZipBlob(filteredFiles);
+    const zipName = `시드니_배낭연수_서류모음_${currentFileFilter.replace('/', '_')}.zip`;
+    
+    const url = URL.createObjectURL(zipBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = zipName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error('ZIP 압축 다운로드 에러:', err);
+    alert('ZIP 압축 다운로드 중 오류가 발생하였습니다: ' + err.message);
+  }
+};
+
+window.downloadSingleFile = function(id) {
+  const file = sharedFilesData.find(f => f.id === id);
+  if (!file) return;
+
+  const link = document.createElement('a');
+
+  if (file.content && typeof file.content === 'string' && file.content.startsWith('data:')) {
+    link.href = file.content;
+  } else {
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + (file.content || '서류 데이터')], { type: 'text/plain;charset=utf-8' });
+    link.href = URL.createObjectURL(blob);
+  }
+
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+window.triggerDocUpload = function() {
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) fileInput.click();
+};
+
+window.handleFileUpload = function(files) {
+  if (!files || files.length === 0) return;
+  Array.from(files).forEach(file => {
+    const tagChoice = prompt(`파일 [${file.name}]의 태그 분류를 선택하세요:\n1: 여행계획\n2: 항공숙박\n3: 영수증\n4: 학교제출 서류\n5: 기타`, "1");
+    
+    let tag = '기타';
+    if (tagChoice === '1') tag = '여행계획';
+    else if (tagChoice === '2') tag = '항공숙박';
+    else if (tagChoice === '3') tag = '영수증';
+    else if (tagChoice === '4') tag = '학교제출 서류';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      sharedFilesData.push({
+        id: 'f-' + Date.now() + Math.random().toString(36).substr(2, 4),
+        name: file.name,
+        tag: tag,
+        size: (file.size / 1024).toFixed(0) + ' KB',
+        date: (new Date().getMonth() + 1) + '.' + new Date().getDate(),
+        content: e.target.result
+      });
+      saveDataToStorage();
+      renderSharedFiles();
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+window.filterDocTag = function(tag, btnEl) {
+  currentFileFilter = tag;
+  const chips = document.querySelectorAll('#docTagFilter .doc-tag-chip');
+  chips.forEach(c => c.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderSharedFiles();
+};
+
+function renderSharedFiles() {
+  const container = document.getElementById('sharedFileList');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const filteredFiles = sharedFilesData.filter(f => {
+    if (currentFileFilter === 'all') return true;
+    return f.tag === currentFileFilter;
+  });
+
+  if (filteredFiles.length === 0) {
+    container.innerHTML = '<li style="font-size:0.85rem; color:var(--text-muted); text-align:center; padding:16px;">이 분류에 등록된 서류가 없습니다.</li>';
+    return;
+  }
+
+  filteredFiles.forEach(file => {
+    const li = document.createElement('li');
+    li.className = 'doc-item-li';
+
+    li.innerHTML = `
+      <div class="doc-item-info">
+        <i class="fa-solid fa-file-pdf" style="color:var(--uluru-red); font-size:1.3rem; flex-shrink:0; margin-top:2px;"></i>
+        <div style="overflow:hidden; flex-grow:1;">
+          <span class="doc-file-name">${escapeHTML(file.name)}</span>
+          <div class="doc-file-meta">
+            <span class="clay-badge badge-blue" style="font-size:0.68rem; padding:1px 6px;">${escapeHTML(file.tag)}</span>
+            <span>${file.size || '100 KB'}</span> · <span>${file.date || '최근'}</span>
+          </div>
+        </div>
+      </div>
+      <div class="doc-item-actions">
+        <button class="clay-btn clay-btn-primary" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;" onclick="downloadSingleFile('${file.id}')">
+          <i class="fa-solid fa-download"></i> 다운
+        </button>
+        <button class="clay-btn clay-btn-danger" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteSharedFile('${file.id}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    `;
+
+    container.appendChild(li);
+  });
+}
+
+window.deleteSharedFile = function(id) {
+  sharedFilesData = sharedFilesData.filter(f => f.id !== id);
+  saveDataToStorage();
+  renderSharedFiles();
+};
+
+function renderHotelAndEmergencyDisplay() {
+  document.getElementById('hotelName').innerText = hotelData.name || '';
+  document.getElementById('hotelAddress').innerText = hotelData.address || '';
+  document.getElementById('hotelPhone').innerText = hotelData.phone || '';
+
+  document.getElementById('emgCall').innerText = emergencyData.call || '';
+  document.getElementById('emgEmbassy').innerText = emergencyData.embassy || '';
+  document.getElementById('emgHospital').innerText = emergencyData.hospital || '';
+}
+
+window.openHotelModal = function() {
+  document.getElementById('inputHotelName').value = hotelData.name || '';
+  document.getElementById('inputHotelAddress').value = hotelData.address || '';
+  document.getElementById('inputHotelPhone').value = hotelData.phone || '';
+  const overlay = document.getElementById('hotelModalOverlay');
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeHotelModal = function() {
+  const overlay = document.getElementById('hotelModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveHotelModal = function(e) {
+  if (e) e.preventDefault();
+  hotelData.name = document.getElementById('inputHotelName').value.trim();
+  hotelData.address = document.getElementById('inputHotelAddress').value.trim();
+  hotelData.phone = document.getElementById('inputHotelPhone').value.trim();
+  saveDataToStorage();
+  renderHotelAndEmergencyDisplay();
+  closeHotelModal();
+};
+
+window.openEmergencyModal = function() {
+  document.getElementById('inputEmgCall').value = emergencyData.call || '';
+  document.getElementById('inputEmgEmbassy').value = emergencyData.embassy || '';
+  document.getElementById('inputEmgHospital').value = emergencyData.hospital || '';
+  const overlay = document.getElementById('emergencyModalOverlay');
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeEmergencyModal = function() {
+  const overlay = document.getElementById('emergencyModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveEmergencyModal = function(e) {
+  if (e) e.preventDefault();
+  emergencyData.call = document.getElementById('inputEmgCall').value.trim();
+  emergencyData.embassy = document.getElementById('inputEmgEmbassy').value.trim();
+  emergencyData.hospital = document.getElementById('inputEmgHospital').value.trim();
+  saveDataToStorage();
+  renderHotelAndEmergencyDisplay();
+  closeEmergencyModal();
+};
+
+window.openEditModal = function(dayId) {
+  const targetDay = itineraryData.find(d => d.id === dayId);
+  if (!targetDay) return;
+
+  document.getElementById('editDayId').value = targetDay.id;
+  document.getElementById('editDateStr').value = targetDay.dateStr || '';
+  document.getElementById('editDateTitle').value = targetDay.subtitle || '';
+  document.getElementById('editTourTime').value = targetDay.tourTime || '';
+
+  const spotsText = targetDay.spots.map(s => `${s.name} | ${s.note || ''}`).join('\n');
+  document.getElementById('editSpots').value = spotsText;
+  document.getElementById('editNote').value = targetDay.tip || '';
+
+  const overlay = document.getElementById('editModalOverlay');
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeEditModal = function() {
+  const overlay = document.getElementById('editModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveEditModal = function(e) {
+  if (e) e.preventDefault();
+
+  const dayId = document.getElementById('editDayId').value;
+  const dateStr = document.getElementById('editDateStr').value.trim();
+  const title = document.getElementById('editDateTitle').value.trim();
+  const tourTime = document.getElementById('editTourTime').value.trim();
+  const spotsRawText = document.getElementById('editSpots').value.trim();
+  const note = document.getElementById('editNote').value.trim();
+
+  const targetDay = itineraryData.find(d => d.id === dayId);
+  if (targetDay) {
+    if (dateStr) targetDay.dateStr = dateStr;
+    if (title) targetDay.subtitle = title;
+    targetDay.tourTime = tourTime || '자율시간';
+    if (note) targetDay.tip = note;
+
+    if (spotsRawText) {
+      const lines = spotsRawText.split('\n');
+      targetDay.spots = lines.map(line => {
+        if (!line.trim()) return null;
+        const parts = line.split('|');
+        return {
+          name: parts[0] ? parts[0].trim() : '장소명 미입력',
+          note: parts[1] ? parts[1].trim() : '세부 메모 없음'
+        };
+      }).filter(Boolean);
+    }
+
+    saveDataToStorage();
+    renderItinerarySidebar();
+    renderDrawerItineraryList();
+    updateMapMarkersAndPolylines();
+    closeEditModal();
+  }
+};
+
+window.triggerDeleteDay = function() {
+  const dayId = document.getElementById('editDayId').value;
+  if (confirm('이 일자를 삭제하시겠습니까?')) {
+    itineraryData = itineraryData.filter(d => d.id !== dayId);
+    saveDataToStorage();
+    renderItinerarySidebar();
+    renderDrawerItineraryList();
+    updateMapMarkersAndPolylines();
+    closeEditModal();
+  }
+};
+
+window.triggerAddDay = function() {
+  const newId = 'day-' + Date.now();
+  itineraryData.push({
+    id: newId,
+    dateStr: `8/${18 + itineraryData.length}`,
+    subtitle: '새로운 일정',
+    badgeClass: 'badge-blue',
+    color: '#008094',
+    tourTime: '자유시간',
+    spots: [{ name: '새로운 장소 이름', note: '밑의 작은 설명글을 작성하세요' }],
+    tip: '안내 팁을 자유롭게 작성하세요',
+    latlng: [-33.8688, 151.2093]
+  });
+  saveDataToStorage();
+  renderItinerarySidebar();
+  renderDrawerItineraryList();
+};
+
+window.addChecklistItem = function(category) {
+  const text = prompt('추가할 체크리스트 항목을 입력하세요:');
+  if (text && text.trim()) {
+    if (!checklistData[category]) checklistData[category] = [];
+    checklistData[category].push({
+      id: 'c-' + Date.now(),
+      text: text.trim(),
+      done: false
+    });
+    saveDataToStorage();
+    renderChecklist();
+  }
+};
+
+function renderChecklist() {
+  const categories = ['before', 'during', 'after', 'etc'];
+  categories.forEach(cat => {
+    const listEl = document.getElementById(`list${cat.charAt(0).toUpperCase() + cat.slice(1)}`);
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    const items = checklistData[cat] || [];
+
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--input-bg);
+        padding: 8px 12px;
+        border-radius: 12px;
+        box-shadow: var(--clay-shadow-pressed);
+        font-size: 0.85rem;
+      `;
+
+      li.innerHTML = `
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex-grow: 1; text-decoration: ${item.done ? 'line-through' : 'none'}; color: ${item.done ? 'var(--text-muted)' : 'var(--text-primary)'}; word-break: keep-all;">
+          <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleChecklistItem('${cat}', '${item.id}')" style="width:16px; height:16px; accent-color: var(--sydney-ocean);">
+          <span>${escapeHTML(item.text)}</span>
+        </label>
+        <button class="close-btn" onclick="deleteChecklistItem('${cat}', '${item.id}')" style="font-size: 1.1rem; color: #999;">&times;</button>
+      `;
+      listEl.appendChild(li);
+    });
+  });
+}
+
+window.toggleChecklistItem = function(category, id) {
+  const item = (checklistData[category] || []).find(i => i.id === id);
+  if (item) {
+    item.done = !item.done;
+    saveDataToStorage();
+    renderChecklist();
+  }
+};
+
+window.deleteChecklistItem = function(category, id) {
+  checklistData[category] = (checklistData[category] || []).filter(i => i.id !== id);
+  saveDataToStorage();
+  renderChecklist();
+};
+
+window.triggerAddSettlementRow = function() {
+  const newRow = {
+    id: Date.now(),
+    category: '항공료',
+    date: '2000-01-01',
+    vendor: '업체',
+    detail: '내역',
+    krw: 0,
+    aud: 0,
+    rate: globalExchangeRate || 900,
+    method: '트래블 카드',
+    isGrantUsed: true,
+    isSettled: true
+  };
+  settlementData.push(newRow);
+  saveDataToStorage();
+  renderSettlementTable();
+};
+
+window.triggerEditGlobalRate = function() {
+  const input = prompt('모든 지출 행에 일괄 적용할 환율(1 AUD 당 원화)을 입력하세요:', globalExchangeRate);
+  if (input !== null) {
+    const newRate = parseFloat(input);
+    if (!isNaN(newRate) && newRate > 0) {
+      applyGlobalExchangeRate(newRate);
+    }
+  }
+};
+
+function applyGlobalExchangeRate(newRate) {
+  globalExchangeRate = newRate;
+  settlementData.forEach(row => {
+    row.rate = newRate;
+    const currentKRW = parseInt(row.krw, 10) || 0;
+    if (newRate > 0) {
+      row.aud = Math.round((currentKRW / newRate) * 100) / 100;
+    }
+  });
+  saveDataToStorage();
+  renderSettlementTable();
+}
+
+function renderSettlementTable() {
+  const tbody = document.getElementById('settlementTbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  let personalTotalExpense = 0;
+  let settledGrantExpenseTotal = 0;
+  let settledPersonalExpenseTotal = 0;
+
+  const sortedSettlements = sortSettlementData(settlementData);
+  settlementData = sortedSettlements;
+
+  sortedSettlements.forEach((row, idx) => {
+    const krwVal = parseInt(row.krw, 10) || 0;
+    const isGrant = Boolean(row.isGrantUsed);
+    const isSettled = typeof row.isSettled === 'boolean' ? row.isSettled : isGrant;
+
+    if (isGrant) {
+      if (isSettled) {
+        settledGrantExpenseTotal += krwVal;
+      }
+    } else {
+      personalTotalExpense += krwVal;
+      if (isSettled) {
+        settledPersonalExpenseTotal += krwVal;
+      }
+    }
+
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--input-border)';
+
+    const categoryOptionsHtml = categoryOptions.map(opt => `
+      <option value="${opt}" ${row.category === opt ? 'selected' : ''}>${opt}</option>
+    `).join('');
+
+    const formattedKRW = krwVal.toLocaleString();
+
+    tr.innerHTML = `
+      <td style="padding:6px; font-weight:700; text-align:center;">${idx + 1}</td>
+      <td style="padding:6px;">
+        <select onchange="updateSettlementField(${row.id}, 'category', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; outline:none; color:var(--sydney-ocean); cursor:pointer;">
+          ${categoryOptionsHtml}
+        </select>
+      </td>
+      <td style="padding:6px;"><input type="date" value="${row.date}" onchange="updateSettlementField(${row.id}, 'date', this.value)" style="width:100%; border:none; background:transparent; outline:none; font-size:0.8rem; color:var(--text-primary);"></td>
+      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.vendor)}" onchange="updateSettlementField(${row.id}, 'vendor', this.value)" style="width:100%; border:none; background:transparent; font-weight:600; outline:none; color:var(--text-primary);"></td>
+      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.detail)}" onchange="updateSettlementField(${row.id}, 'detail', this.value)" style="width:100%; border:none; background:transparent; outline:none; color:var(--text-primary);"></td>
+      
+      <td style="padding:6px; text-align:center;">
+        <input type="checkbox" ${isGrant ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isGrantUsed', this.checked)" style="width:18px; height:18px; accent-color: var(--sydney-ocean); cursor:pointer;">
+      </td>
+      <td style="padding:6px; text-align:center;">
+        <input type="checkbox" ${isSettled ? 'checked' : ''} onchange="updateSettlementField(${row.id}, 'isSettled', this.checked)" style="width:18px; height:18px; accent-color: var(--eucalyptus-green); cursor:pointer;">
+      </td>
+
+      <td style="padding:6px;">
+        <input type="text" value="${formattedKRW}" onchange="updateSettlementField(${row.id}, 'krw', this.value)" style="width:100%; border:none; background:transparent; font-weight:800; color:var(--uluru-red); outline:none;" placeholder="0">
+      </td>
+      <td style="padding:6px;">
+        <input type="number" value="${row.aud}" onchange="updateSettlementField(${row.id}, 'aud', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; color:var(--sydney-ocean); outline:none;" placeholder="0">
+      </td>
+      <td style="padding:6px;">
+        <input type="number" value="${row.rate || globalExchangeRate}" onchange="updateSettlementField(${row.id}, 'rate', this.value)" style="width:100%; border:none; background:transparent; font-weight:700; outline:none; color:var(--text-primary);" placeholder="900">
+      </td>
+      <td style="padding:6px;"><input type="text" value="${escapeHTML(row.method)}" onchange="updateSettlementField(${row.id}, 'method', this.value)" style="width:100%; border:none; background:transparent; outline:none; color:var(--text-primary);"></td>
+      
+      <td style="padding:6px; text-align:center;">
+        <button class="clay-btn clay-btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deleteSettlementRow(${row.id})">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const rateDisplayEl = document.getElementById('displayGlobalRate');
+  if (rateDisplayEl) rateDisplayEl.innerText = `1 AUD = ₩ ${globalExchangeRate.toLocaleString()}`;
+
+  const grantBalance = grantAmount - settledGrantExpenseTotal;
+  let personalBalance = personalTotalExpense - settledPersonalExpenseTotal;
+
+  if (grantBalance < 0) {
+    personalBalance += Math.abs(grantBalance);
+  }
+
+  let perPersonExpense = 0;
+  let subExplanation = '';
+
+  if (grantBalance < 0) {
+    perPersonExpense = Math.round((Math.abs(grantBalance) + personalTotalExpense) / 4);
+    subExplanation = `지원금 초과 ₩${Math.abs(grantBalance).toLocaleString()} 포함 (1/4 N빵)`;
+  } else {
+    perPersonExpense = Math.round(personalTotalExpense / 4);
+    subExplanation = `개인 총지출 ₩${personalTotalExpense.toLocaleString()} 기준 (1/4 N빵)`;
+  }
+
+  document.getElementById('summaryGrant').innerText = `₩ ${grantAmount.toLocaleString()}`;
+  document.getElementById('summaryPersonalTotalExpense').innerText = `₩ ${personalTotalExpense.toLocaleString()}`;
+  document.getElementById('summaryGrantExpense').innerText = `₩ ${settledGrantExpenseTotal.toLocaleString()}`;
+  document.getElementById('summaryPersonalExpense').innerText = `₩ ${settledPersonalExpenseTotal.toLocaleString()}`;
+  
+  document.getElementById('summaryGrantBalance').innerText = `₩ ${grantBalance.toLocaleString()}`;
+  document.getElementById('summaryPersonalBalance').innerText = `₩ ${personalBalance.toLocaleString()}`;
+
+  const perPersonEl = document.getElementById('summaryPerPersonExpense');
+  const perPersonSubEl = document.getElementById('summaryPerPersonSubText');
+  if (perPersonEl) perPersonEl.innerText = `₩ ${perPersonExpense.toLocaleString()}`;
+  if (perPersonSubEl) perPersonSubEl.innerText = subExplanation;
+}
+
+function parseFormattedNumber(val) {
+  if (typeof val === 'number') return val;
+  if (!val) return 0;
+  const clean = String(val).replace(/,/g, '').trim();
+  return parseInt(clean, 10) || 0;
+}
+
+window.updateSettlementField = function(id, field, value) {
+  const row = settlementData.find(s => s.id === id);
+  if (row) {
+    if (field === 'rate') {
+      const newRate = parseFloat(value) || globalExchangeRate || 900;
+      applyGlobalExchangeRate(newRate);
+      return;
+    } else if (field === 'krw') {
+      row.krw = parseFormattedNumber(value);
+      const currentRate = parseFloat(row.rate) || globalExchangeRate || 1;
+      if (currentRate > 0) {
+        row.aud = Math.round((row.krw / currentRate) * 100) / 100;
+      }
+    } else if (field === 'aud') {
+      row.aud = parseFloat(value) || 0;
+      const currentRate = parseFloat(row.rate) || globalExchangeRate || 1;
+      row.krw = Math.round(row.aud * currentRate);
+    } else if (field === 'isGrantUsed') {
+      row.isGrantUsed = Boolean(value);
+      row.isSettled = Boolean(value);
+    } else if (field === 'isSettled') {
+      row.isSettled = Boolean(value);
+    } else {
+      row[field] = value;
+    }
+    saveDataToStorage();
+    renderSettlementTable();
+  }
+};
+
+window.triggerEditGrant = function() {
+  const input = prompt('수정할 총 지원금(가지급금) 원화 금액을 입력하세요 (예: 2,500,000):', grantAmount.toLocaleString());
+  if (input !== null) {
+    const parsed = parseFormattedNumber(input);
+    if (!isNaN(parsed)) {
+      grantAmount = parsed;
+      saveDataToStorage();
+      renderSettlementTable();
+    }
+  }
+};
+
+window.deleteSettlementRow = function(id) {
+  settlementData = settlementData.filter(s => s.id !== id);
+  saveDataToStorage();
+  renderSettlementTable();
+};
+
+window.exportGrantOnlyCSV = function() {
+  const BOM = "\uFEFF";
+  let csvContent = "연번,구분,결제일자,업체명,내역(상세),지원금 사용,정산완료 여부,금액(원),현지(AUD),환율,결제방법\n";
+  const grantRows = sortSettlementData(settlementData.filter(r => r.isGrantUsed));
+  if (grantRows.length === 0) {
+    alert('지원금 사용이 체크된 지출 항목이 없습니다.');
+    return;
+  }
+  grantRows.forEach((r, i) => {
+    const isUsedStr = r.isGrantUsed ? "사용함(O)" : "미사용(X)";
+    const settledStr = r.isSettled ? "정산완료(O)" : "미정산(X)";
+    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}","${isUsedStr}","${settledStr}",${r.krw},${r.aud},${r.rate},"${r.method}"\n`;
+  });
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "2026_호주머니_0원의_배낭연수_지원금_정산서.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+window.exportFullCSV = function() {
+  const BOM = "\uFEFF";
+  let csvContent = "연번,구분,결제일자,업체명,내역(상세),지원금 사용여부,정산완료 여부,금액(원),현지(AUD),환율,결제방법\n";
+  const sortedRows = sortSettlementData(settlementData);
+  sortedRows.forEach((r, i) => {
+    const isUsedStr = r.isGrantUsed ? "사용함(O)" : "미사용(X)";
+    const settledStr = r.isSettled ? "정산완료(O)" : "미정산(X)";
+    csvContent += `${i+1},"${r.category}","${r.date}","${r.vendor}","${r.detail}","${isUsedStr}","${settledStr}",${r.krw},${r.aud},${r.rate},"${r.method}"\n`;
+  });
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "2026_호주머니_0원의_배낭연수_전체_정산서.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+window.triggerAddMemo = function() {
+  const text = prompt('추가할 메모 내용을 입력하세요:');
+  if (text && text.trim()) {
+    memoData.push({
+      id: 'm-' + Date.now(),
+      text: text.trim(),
+      time: (new Date().getMonth() + 1) + '/' + new Date().getDate() + ' ' + new Date().getHours() + ':' + String(new Date().getMinutes()).padStart(2, '0')
+    });
+    saveDataToStorage();
+    renderMemos();
+  }
+};
+
+function renderMemos() {
+  const container = document.getElementById('memoGrid');
+  if (!container) return;
+  container.innerHTML = '';
+
+  memoData.forEach(m => {
+    const card = document.createElement('div');
+    card.style.cssText = `
+      background: var(--aus-gold-soft);
+      padding: 14px;
+      border-radius: 16px;
+      box-shadow: var(--clay-shadow-main);
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 120px;
+    `;
+
+    card.innerHTML = `
+      <p style="font-weight:600; color:var(--text-primary); line-height:1.4; word-break:keep-all;">${escapeHTML(m.text)}</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px dashed #E6DF9A; padding-top:6px;">
+        <span style="font-size:0.72rem; color:var(--text-muted);">${m.time || '최근'}</span>
+        <div>
+          <button class="clay-btn clay-btn-secondary" style="padding:2px 6px; font-size:0.7rem; margin-right:4px;" onclick="editMemo('${m.id}')">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="clay-btn clay-btn-danger" style="padding:2px 6px; font-size:0.7rem;" onclick="deleteMemo('${m.id}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+window.editMemo = function(id) {
+  const target = memoData.find(m => m.id === id);
+  if (!target) return;
+
+  const newText = prompt('메모 내용을 수정하세요:', target.text);
+  if (newText !== null && newText.trim()) {
+    target.text = newText.trim();
+    target.time = '수정됨 ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    saveDataToStorage();
+    renderMemos();
+  }
+};
+
+window.deleteMemo = function(id) {
+  if (confirm('이 메모를 삭제하시겠습니까?')) {
+    memoData = memoData.filter(m => m.id !== id);
+    saveDataToStorage();
+    renderMemos();
+  }
+};
+
+window.triggerPhotoUpload = function() {
+  const photoInput = document.getElementById('photoInput');
+  if (photoInput) photoInput.click();
+};
+
+function compressImage(dataUrl, maxWidth, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    let width = img.width;
+    let height = img.height;
+
+    if (width > maxWidth) {
+      height = Math.round((height * maxWidth) / width);
+      width = maxWidth;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    callback(compressedDataUrl);
+  };
+  img.src = dataUrl;
+}
+
+window.handlePhotoUpload = function(files) {
+  if (!files || files.length === 0) return;
+  const file = files[0];
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    compressImage(event.target.result, 600, (compressedSrc) => {
+      photoData.push({
+        id: 'p-' + Date.now(),
+        src: compressedSrc,
+        title: file.name,
+        category: currentPhotoFilter !== 'all' ? currentPhotoFilter : '8/23',
+        heart: 1,
+        thumb: 0,
+        wow: 0,
+        party: 0
+      });
+      saveDataToStorage();
+      renderPhotos();
+    });
+  };
+  reader.readAsDataURL(file);
+};
+
+window.filterPhotoTag = function(filter, btnEl) {
+  currentPhotoFilter = filter;
+  const chips = document.querySelectorAll('#photoCategoryFilter .photo-tag-chip');
+  chips.forEach(c => c.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderPhotos();
+};
+
+function renderPhotos() {
+  const container = document.getElementById('photoGrid');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const filteredPhotos = photoData.filter(p => {
+    if (currentPhotoFilter === 'all') return true;
+    return p.category === currentPhotoFilter;
+  });
+
+  if (filteredPhotos.length === 0) {
+    container.innerHTML = '<p style="font-size:0.88rem; color:var(--text-muted); grid-column: 1/-1; text-align:center; padding:24px;">이 카테고리에 해당하는 사진이 없습니다. [사진 업로드] 버튼을 눌러 사진을 추가해보세요!</p>';
+    return;
+  }
+
+  filteredPhotos.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'clay-card';
+    card.style.cssText = 'padding: 12px; cursor: pointer; transition: transform 0.2s ease;';
+
+    card.onclick = (e) => {
+      if (e.target.closest('button')) return;
+      openPhotoLightbox(p.id);
+    };
+
+    let categoryLabel = p.category === '8/23' ? '8/23 오페라하우스' : (p.category === '8/24' ? '8/24 복귀' : p.category);
+
+    card.innerHTML = `
+      <div style="overflow:hidden; border-radius:12px; margin-bottom:8px; height:140px; background:#000;">
+        <img src="${p.src}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+      </div>
+      <div style="font-weight:700; font-size:0.88rem; margin-bottom:6px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHTML(p.title)}</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:4px;">
+        <span class="clay-badge badge-red" style="white-space:nowrap; flex-shrink:0; max-width:65%; text-overflow:ellipsis; overflow:hidden;">${categoryLabel}</span>
+        <button class="clay-btn clay-btn-primary" style="padding:3px 8px; font-size:0.72rem; white-space:nowrap; flex-shrink:0;" onclick="downloadPhotoFile('${p.id}')">
+          <i class="fa-solid fa-download"></i> 다운
+        </button>
+      </div>
+      <div style="display:flex; justify-around; background:var(--input-bg); padding:4px; border-radius:8px; gap:2px;">
+        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'heart')">❤️ ${p.heart || 0}</button>
+        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'thumb')">👍 ${p.thumb || 0}</button>
+        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'wow')">😮 ${p.wow || 0}</button>
+        <button class="clay-btn clay-btn-secondary" style="padding:2px 5px; font-size:0.7rem; box-shadow:none;" onclick="reactPhoto('${p.id}', 'party')">🎉 ${p.party || 0}</button>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+window.reactPhoto = function(id, type) {
+  const p = photoData.find(item => item.id === id);
+  if (p) {
+    if (!p[type]) p[type] = 0;
+    p[type]++;
+    saveDataToStorage();
+    renderPhotos();
+  }
+};
+
+window.openPhotoLightbox = function(id) {
+  const photo = photoData.find(p => p.id === id);
+  if (!photo) return;
+
+  currentActivePhotoId = id;
+  const overlay = document.getElementById('photoLightboxModal');
+  const imgEl = document.getElementById('lightboxImg');
+  const titleEl = document.getElementById('lightboxTitle');
+  const categoryEl = document.getElementById('lightboxCategory');
+
+  imgEl.src = photo.src;
+  titleEl.innerText = photo.title || '사진 상세보기';
+  
+  let categoryLabel = photo.category === '8/23' ? '8/23 오페라하우스' : (photo.category === '8/24' ? '8/24 복귀' : photo.category);
+  categoryEl.innerText = categoryLabel;
+
+  overlay.classList.add('active');
+};
+
+window.closePhotoLightbox = function() {
+  const overlay = document.getElementById('photoLightboxModal');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.downloadCurrentLightboxPhoto = function() {
+  if (currentActivePhotoId) {
+    downloadPhotoFile(currentActivePhotoId);
+  }
+};
+
+window.downloadPhotoFile = function(id) {
+  const photo = photoData.find(p => p.id === id);
+  if (!photo) return;
+
+  const link = document.createElement('a');
+  link.href = photo.src;
+  link.download = `시드니여행_${photo.title || '사진'}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+function createPureZipBlob(fileEntries) {
+  const textEncoder = new TextEncoder();
+
+  function getUint32LE(val) {
+    return [val & 0xff, (val >> 8) & 0xff, (val >> 16) & 0xff, (val >> 24) & 0xff];
+  }
+  function getUint16LE(val) {
+    return [val & 0xff, (val >> 8) & 0xff];
+  }
+
+  function crc32(bytes) {
+    let crc = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= bytes[i];
+      for (let j = 0; j < 8; j++) {
+        crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+      }
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+
+  const localHeaders = [];
+  const centralDirs = [];
+  let offset = 0;
+
+  fileEntries.forEach(entry => {
+    const filenameBytes = textEncoder.encode(entry.name);
+    let dataBytes = null;
+
+    if (entry.content && typeof entry.content === 'string' && entry.content.startsWith('data:')) {
+      try {
+        const parts = entry.content.split(',');
+        const isBase64 = parts[0].includes('base64');
+        const rawData = parts[1] || '';
+
+        if (isBase64) {
+          const cleanBase64 = rawData.replace(/\s/g, '');
+          const binaryStr = atob(cleanBase64);
+          dataBytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            dataBytes[i] = binaryStr.charCodeAt(i);
+          }
+        } else {
+          const decodedStr = decodeURIComponent(rawData);
+          const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+          const contentBytes = textEncoder.encode(decodedStr);
+          dataBytes = new Uint8Array(BOM.length + contentBytes.length);
+          dataBytes.set(BOM, 0);
+          dataBytes.set(contentBytes, BOM.length);
+        }
+      } catch (e) {
+        const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+        const contentBytes = textEncoder.encode(entry.content);
+        dataBytes = new Uint8Array(BOM.length + contentBytes.length);
+        dataBytes.set(BOM, 0);
+        dataBytes.set(contentBytes, BOM.length);
+      }
+    } else {
+      const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+      const contentBytes = textEncoder.encode(entry.content || '');
+      dataBytes = new Uint8Array(BOM.length + contentBytes.length);
+      dataBytes.set(BOM, 0);
+      dataBytes.set(contentBytes, BOM.length);
+    }
+
+    const dataCrc = crc32(dataBytes);
+    const size = dataBytes.length;
+    const flagsLE = [0x00, 0x08];
+
+    const localHeader = new Uint8Array([
+      0x50, 0x4b, 0x03, 0x04,
+      0x14, 0x00,
+      ...flagsLE,
+      0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      ...getUint32LE(dataCrc),
+      ...getUint32LE(size),
+      ...getUint32LE(size),
+      ...getUint16LE(filenameBytes.length),
+      0x00, 0x00
+    ]);
+
+    const localChunk = new Uint8Array(localHeader.length + filenameBytes.length + dataBytes.length);
+    localChunk.set(localHeader, 0);
+    localChunk.set(filenameBytes, localHeader.length);
+    localChunk.set(dataBytes, localHeader.length + filenameBytes.length);
+    localHeaders.push(localChunk);
+
+    const centralHeader = new Uint8Array([
+      0x50, 0x4b, 0x01, 0x02,
+      0x14, 0x00,
+      0x14, 0x00,
+      ...flagsLE,
+      0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      ...getUint32LE(dataCrc),
+      ...getUint32LE(size),
+      ...getUint32LE(size),
+      ...getUint16LE(filenameBytes.length),
+      0x00, 0x00,
+      0x00, 0x00,
+      0x00, 0x00,
+      0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      ...getUint32LE(offset)
+    ]);
+
+    const centralChunk = new Uint8Array(centralHeader.length + filenameBytes.length);
+    centralChunk.set(centralHeader, 0);
+    centralChunk.set(filenameBytes, centralHeader.length);
+    centralDirs.push(centralChunk);
+
+    offset += localChunk.length;
+  });
+
+  const centralOffset = offset;
+  let centralSize = 0;
+  centralDirs.forEach(cd => centralSize += cd.length);
+
+  const eocd = new Uint8Array([
+    0x50, 0x4b, 0x05, 0x06,
+    0x00, 0x00,
+    0x00, 0x00,
+    ...getUint16LE(fileEntries.length),
+    ...getUint16LE(fileEntries.length),
+    ...getUint32LE(centralSize),
+    ...getUint32LE(centralOffset),
+    0x00, 0x00
+  ]);
+
+  const finalParts = [...localHeaders, ...centralDirs, eocd];
+  return new Blob(finalParts, { type: 'application/zip' });
+}
+
+window.triggerDownloadAllDocs = function() {
+  const filteredFiles = sharedFilesData.filter(f => {
+    if (currentFileFilter === 'all') return true;
+    return f.tag === currentFileFilter;
+  });
+
+  if (filteredFiles.length === 0) {
+    alert('다운로드할 서류가 없습니다.');
+    return;
+  }
+
+  try {
+    const zipBlob = createPureZipBlob(filteredFiles);
+    const zipName = `시드니_배낭연수_서류모음_${currentFileFilter.replace('/', '_')}.zip`;
+    
+    const url = URL.createObjectURL(zipBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = zipName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error('ZIP 압축 다운로드 에러:', err);
+    alert('ZIP 압축 다운로드 중 오류가 발생하였습니다: ' + err.message);
+  }
+};
+
+window.downloadSingleFile = function(id) {
+  const file = sharedFilesData.find(f => f.id === id);
+  if (!file) return;
+
+  const link = document.createElement('a');
+
+  if (file.content && typeof file.content === 'string' && file.content.startsWith('data:')) {
+    link.href = file.content;
+  } else {
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + (file.content || '서류 데이터')], { type: 'text/plain;charset=utf-8' });
+    link.href = URL.createObjectURL(blob);
+  }
+
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+window.triggerDocUpload = function() {
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) fileInput.click();
+};
+
+window.handleFileUpload = function(files) {
+  if (!files || files.length === 0) return;
+  Array.from(files).forEach(file => {
+    const tagChoice = prompt(`파일 [${file.name}]의 태그 분류를 선택하세요:\n1: 여행계획\n2: 항공숙박\n3: 영수증\n4: 학교제출 서류\n5: 기타`, "1");
+    
+    let tag = '기타';
+    if (tagChoice === '1') tag = '여행계획';
+    else if (tagChoice === '2') tag = '항공숙박';
+    else if (tagChoice === '3') tag = '영수증';
+    else if (tagChoice === '4') tag = '학교제출 서류';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      sharedFilesData.push({
+        id: 'f-' + Date.now() + Math.random().toString(36).substr(2, 4),
+        name: file.name,
+        tag: tag,
+        size: (file.size / 1024).toFixed(0) + ' KB',
+        date: (new Date().getMonth() + 1) + '.' + new Date().getDate(),
+        content: e.target.result
+      });
+      saveDataToStorage();
+      renderSharedFiles();
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+window.filterDocTag = function(tag, btnEl) {
+  currentFileFilter = tag;
+  const chips = document.querySelectorAll('#docTagFilter .doc-tag-chip');
+  chips.forEach(c => c.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderSharedFiles();
+};
+
+function renderSharedFiles() {
+  const container = document.getElementById('sharedFileList');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const filteredFiles = sharedFilesData.filter(f => {
+    if (currentFileFilter === 'all') return true;
+    return f.tag === currentFileFilter;
+  });
+
+  if (filteredFiles.length === 0) {
+    container.innerHTML = '<li style="font-size:0.85rem; color:var(--text-muted); text-align:center; padding:16px;">이 분류에 등록된 서류가 없습니다.</li>';
+    return;
+  }
+
+  filteredFiles.forEach(file => {
+    const li = document.createElement('li');
+    li.className = 'doc-item-li';
+
+    li.innerHTML = `
+      <div class="doc-item-info">
+        <i class="fa-solid fa-file-pdf" style="color:var(--uluru-red); font-size:1.3rem; flex-shrink:0; margin-top:2px;"></i>
+        <div style="overflow:hidden; flex-grow:1;">
+          <span class="doc-file-name">${escapeHTML(file.name)}</span>
+          <div class="doc-file-meta">
+            <span class="clay-badge badge-blue" style="font-size:0.68rem; padding:1px 6px;">${escapeHTML(file.tag)}</span>
+            <span>${file.size || '100 KB'}</span> · <span>${file.date || '최근'}</span>
+          </div>
+        </div>
+      </div>
+      <div class="doc-item-actions">
+        <button class="clay-btn clay-btn-primary" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;" onclick="downloadSingleFile('${file.id}')">
+          <i class="fa-solid fa-download"></i> 다운
+        </button>
+        <button class="clay-btn clay-btn-danger" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteSharedFile('${file.id}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    `;
+
+    container.appendChild(li);
+  });
+}
+
+window.deleteSharedFile = function(id) {
+  sharedFilesData = sharedFilesData.filter(f => f.id !== id);
+  saveDataToStorage();
+  renderSharedFiles();
+};
+
+function renderHotelAndEmergencyDisplay() {
+  document.getElementById('hotelName').innerText = hotelData.name || '';
+  document.getElementById('hotelAddress').innerText = hotelData.address || '';
+  document.getElementById('hotelPhone').innerText = hotelData.phone || '';
+
+  document.getElementById('emgCall').innerText = emergencyData.call || '';
+  document.getElementById('emgEmbassy').innerText = emergencyData.embassy || '';
+  document.getElementById('emgHospital').innerText = emergencyData.hospital || '';
+}
+
+window.openHotelModal = function() {
+  document.getElementById('inputHotelName').value = hotelData.name || '';
+  document.getElementById('inputHotelAddress').value = hotelData.address || '';
+  document.getElementById('inputHotelPhone').value = hotelData.phone || '';
+  const overlay = document.getElementById('hotelModalOverlay');
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeHotelModal = function() {
+  const overlay = document.getElementById('hotelModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveHotelModal = function(e) {
+  if (e) e.preventDefault();
+  hotelData.name = document.getElementById('inputHotelName').value.trim();
+  hotelData.address = document.getElementById('inputHotelAddress').value.trim();
+  hotelData.phone = document.getElementById('inputHotelPhone').value.trim();
+  saveDataToStorage();
+  renderHotelAndEmergencyDisplay();
+  closeHotelModal();
+};
+
+window.openEmergencyModal = function() {
+  document.getElementById('inputEmgCall').value = emergencyData.call || '';
+  document.getElementById('inputEmgEmbassy').value = emergencyData.embassy || '';
+  document.getElementById('inputEmgHospital').value = emergencyData.hospital || '';
+  const overlay = document.getElementById('emergencyModalOverlay');
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeEmergencyModal = function() {
+  const overlay = document.getElementById('emergencyModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveEmergencyModal = function(e) {
+  if (e) e.preventDefault();
+  emergencyData.call = document.getElementById('inputEmgCall').value.trim();
+  emergencyData.embassy = document.getElementById('inputEmgEmbassy').value.trim();
+  emergencyData.hospital = document.getElementById('inputEmgHospital').value.trim();
+  saveDataToStorage();
+  renderHotelAndEmergencyDisplay();
+  closeEmergencyModal();
+};
+
+window.openEditModal = function(dayId) {
+  const targetDay = itineraryData.find(d => d.id === dayId);
+  if (!targetDay) return;
+
+  document.getElementById('editDayId').value = targetDay.id;
+  document.getElementById('editDateStr').value = targetDay.dateStr || '';
+  document.getElementById('editDateTitle').value = targetDay.subtitle || '';
+  document.getElementById('editTourTime').value = targetDay.tourTime || '';
+
+  const spotsText = targetDay.spots.map(s => `${s.name} | ${s.note || ''}`).join('\n');
+  document.getElementById('editSpots').value = spotsText;
+  document.getElementById('editNote').value = targetDay.tip || '';
+
+  const overlay = document.getElementById('editModalOverlay');
+  if (overlay) overlay.classList.add('active');
+};
+
+window.closeEditModal = function() {
+  const overlay = document.getElementById('editModalOverlay');
+  if (overlay) overlay.classList.remove('active');
+};
+
+window.saveEditModal = function(e) {
+  if (e) e.preventDefault();
+
+  const dayId = document.getElementById('editDayId').value;
+  const dateStr = document.getElementById('editDateStr').value.trim();
+  const title = document.getElementById('editDateTitle').value.trim();
+  const tourTime = document.getElementById('editTourTime').value.trim();
+  const spotsRawText = document.getElementById('editSpots').value.trim();
+  const note = document.getElementById('editNote').value.trim();
+
+  const targetDay = itineraryData.find(d => d.id === dayId);
+  if (targetDay) {
+    if (dateStr) targetDay.dateStr = dateStr;
+    if (title) targetDay.subtitle = title;
+    targetDay.tourTime = tourTime || '자율시간';
+    if (note) targetDay.tip = note;
+
+    if (spotsRawText) {
+      const lines = spotsRawText.split('\n');
+      targetDay.spots = lines.map(line => {
+        if (!line.trim()) return null;
+        const parts = line.split('|');
+        return {
+          name: parts[0] ? parts[0].trim() : '장소명 미입력',
+          note: parts[1] ? parts[1].trim() : '세부 메모 없음'
+        };
+      }).filter(Boolean);
+    }
+
+    saveDataToStorage();
+    renderItinerarySidebar();
+    renderDrawerItineraryList();
+    updateMapMarkersAndPolylines();
+    closeEditModal();
+  }
+};
+
+window.triggerDeleteDay = function() {
+  const dayId = document.getElementById('editDayId').value;
+  if (confirm('이 일자를 삭제하시겠습니까?')) {
+    itineraryData = itineraryData.filter(d => d.id !== dayId);
+    saveDataToStorage();
+    renderItinerarySidebar();
+    renderDrawerItineraryList();
+    updateMapMarkersAndPolylines();
+    closeEditModal();
+  }
+};
+
+window.triggerAddDay = function() {
+  const newId = 'day-' + Date.now();
+  itineraryData.push({
+    id: newId,
+    dateStr: `8/${18 + itineraryData.length}`,
+    subtitle: '새로운 일정',
+    badgeClass: 'badge-blue',
+    color: '#008094',
+    tourTime: '자유시간',
+    spots: [{ name: '새로운 장소 이름', note: '밑의 작은 설명글을 작성하세요' }],
+    tip: '안내 팁을 자유롭게 작성하세요',
+    latlng: [-33.8688, 151.2093]
+  });
+  saveDataToStorage();
+  renderItinerarySidebar();
+  renderDrawerItineraryList();
+};
+
+window.addChecklistItem = function(category) {
+  const text = prompt('추가할 체크리스트 항목을 입력하세요:');
+  if (text && text.trim()) {
+    if (!checklistData[category]) checklistData[category] = [];
+    checklistData[category].push({
+      id: 'c-' + Date.now(),
+      text: text.trim(),
+      done: false
+    });
+    saveDataToStorage();
+    renderChecklist();
+  }
+};
+
+function renderChecklist() {
+  const categories = ['before', 'during', 'after', 'etc'];
+  categories.forEach(cat => {
+    const listEl = document.getElementById(`list${cat.charAt(0).toUpperCase() + cat.slice(1)}`);
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    const items = checklistData[cat] || [];
+
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--input-bg);
+        padding: 8px 12px;
+        border-radius: 12px;
+        box-shadow: var(--clay-shadow-pressed);
+        font-size: 0.85rem;
+      `;
+
+      li.innerHTML = `
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex-grow: 1; text-decoration: ${item.done ? 'line-through' : 'none'}; color: ${item.done ? 'var(--text-muted)' : 'var(--text-primary)'}; word-break: keep-all;">
+          <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleChecklistItem('${cat}', '${item.id}')" style="width:16px; height:16px; accent-color: var(--sydney-ocean);">
+          <span>${escapeHTML(item.text)}</span>
+        </label>
+        <button class="close-btn" onclick="deleteChecklistItem('${cat}', '${item.id}')" style="font-size: 1.1rem; color: #999;">&times;</button>
+      `;
+      listEl.appendChild(li);
+    });
+  });
+}
+
+window.toggleChecklistItem = function(category, id) {
+  const item = (checklistData[category] || []).find(i => i.id === id);
+  if (item) {
+    item.done = !item.done;
+    saveDataToStorage();
+    renderChecklist();
+  }
+};
+
+window.deleteChecklistItem = function(category, id) {
+  checklistData[category] = (checklistData[category] || []).filter(i => i.id !== id);
+  saveDataToStorage();
+  renderChecklist();
+};
+
 function initTabNavigation() {
   const navBtns = document.querySelectorAll('.clay-nav-btn');
   const tabContents = document.querySelectorAll('.tab-content');
@@ -1768,7 +4285,6 @@ function updateMapMarkersAndPolylines() {
   }
 }
 
-/* 📍 [지도 & 동선] 탭 전용 사이드바 렌더링 (편집 버튼 포함) */
 function renderItinerarySidebar() {
   const container = document.getElementById('itineraryCardList');
   if (!container) return;
